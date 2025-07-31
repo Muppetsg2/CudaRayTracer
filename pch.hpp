@@ -1,0 +1,17 @@
+#pragma once
+#include "stb_image.h"
+#include "stb_image_write.h"
+#include <stdio.h>
+#include <cstdio>
+#include <cstdint>
+#include <stdexcept>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <filesystem>
+#include <thrust/functional.h>
+#include <thrust/swap.h>
+#include <thrust/pair.h>
+#include <thrust/tuple.h>
+#include <corecrt_math_defines.h>
+#include <time.h>

@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CudaCompile Include="main.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="stb_image_write.cpp">
+      <Filter>Libraries</Filter>
+    </ClCompile>
+    <ClCompile Include="stb_image.cpp">
+      <Filter>Libraries</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.hpp" />
+    <ClInclude Include="AreaLight.hpp">
+      <Filter>Light</Filter>
+    </ClInclude>
+    <ClInclude Include="Geometry.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.hpp">
+      <Filter>Light</Filter>
+    </ClInclude>
+    <ClInclude Include="ltc.hpp">
+      <Filter>Light</Filter>
+    </ClInclude>
+    <ClInclude Include="mat.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="math_functions.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Quad.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.hpp">
+      <Filter>Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.hpp">
+      <Filter>Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="quat.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Vertex.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.hpp">
+      <Filter>Light</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image_write.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="GeometryList.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="vec.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="math_types.hpp">
+      <Filter>Math</Filter>
+    </ClInclude>
+    <ClInclude Include="Color.hpp" />
+    <ClInclude Include="Material.hpp" />
+    <ClInclude Include="stb_image.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="LightList.hpp">
+      <Filter>Light</Filter>
+    </ClInclude>
+    <ClInclude Include="ldg_helpers.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Geometry">
+      <UniqueIdentifier>{7ec4d068-67b4-45fe-a272-e2c58901de96}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{0a80f62e-1a8a-4b7e-8792-6b2ad3d1ceb4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Light">
+      <UniqueIdentifier>{f61f5520-0f84-408f-a7a3-eb6c15ae26ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Camera">
+      <UniqueIdentifier>{c0cad098-62d7-43db-85f6-866159fe9c5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{654da495-34ea-454f-be96-896a2d2debff}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
