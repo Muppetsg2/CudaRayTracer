@@ -347,7 +347,7 @@ __global__ void render(float* fb, unsigned int max_x, unsigned int max_y, unsign
     rand_state[idx] = local_rand_state;
 }
 
-__global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld) {
+__global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // Camera
         *d_cam = new Camera(vec3::zero(), vec3(0.f, 0.f, -1.f), CameraType::PERSPECTIVE, deg_to_rad(45.f), 2.f);
@@ -568,7 +568,7 @@ __global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gw
 
         *d_gworld = new GeometryList(d_glist, 8);
 
-        d_llist[0] = new AreaLight(quadPoints[0], quadPoints[1], quadPoints[2], quadPoints[3], Color::white(), 100, 10.f);
+        d_llist[0] = new AreaLight(quadPoints[0], quadPoints[1], quadPoints[2], quadPoints[3], Color::white(), shadowSamples, 10.f);
         ((AreaLight*)d_llist[0])->rotate(vec3(1.f, 0.f, 0.f), deg_to_rad(180.f));
         *d_lworld = new LightList(d_llist, 1);
     }
@@ -618,12 +618,13 @@ int main()
 
     unsigned int nx = 720;
     unsigned int ny = 720;
-    unsigned int tx = 19;
-    unsigned int ty = 19;
-    unsigned int aa_iter = 2;
-    unsigned int ref_iter = 6;
-    unsigned int gl_iter = 0;
-    unsigned int ind_rays = 5;
+    unsigned int tx = 19; // Optimized
+    unsigned int ty = 19; // Optimized
+    unsigned int aa_iter = 1; // Optimized
+    unsigned int ref_iter = 4; // Optimized
+    unsigned int gl_iter = 5; // Can also be 4 but its darker
+    unsigned int ind_rays = 75; // I think its good enough
+    unsigned int shadowSamples = 50; // Optimized
     unsigned int num_pixels = nx * ny;
     size_t fb_size = 4 * num_pixels * sizeof(float);
 
@@ -665,7 +666,7 @@ int main()
     checkCudaErrors(cudaMallocManaged((void**)&d_lworld, sizeof(Light*)));
 
     // Create our world
-    create_world<<<1, 1>>>(d_cam, d_glist, d_gworld, d_llist, d_lworld);
+    create_world<<<1, 1>>>(d_cam, d_glist, d_gworld, d_llist, d_lworld, shadowSamples);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
