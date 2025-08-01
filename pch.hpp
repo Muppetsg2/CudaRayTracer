@@ -1,6 +1,8 @@
 #pragma once
+
 #include "stb_image.h"
 #include "stb_image_write.h"
+#include <SFML/Graphics.hpp>
 #include <stdio.h>
 #include <cstdio>
 #include <cstdint>

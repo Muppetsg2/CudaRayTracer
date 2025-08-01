@@ -347,6 +347,27 @@ __global__ void render(float* fb, unsigned int max_x, unsigned int max_y, unsign
     rand_state[idx] = local_rand_state;
 }
 
+__global__ void render_partial(float* fb, unsigned int max_x, unsigned int max_y, unsigned int startX, unsigned int startY, unsigned int aa_iter, unsigned int ref_iter, unsigned int gl_iter, unsigned int ind_rays, Camera* cam, Geometry** world, Light** lights, curandState* rand_state) {
+    size_t i = startX + threadIdx.x;
+    size_t j = startY + threadIdx.y;
+    if ((i >= max_x) || (j >= max_y)) return;
+    size_t pixel_index = (j * max_x + i);
+    size_t idx = pixel_index;
+    curandState local_rand_state = rand_state[idx];
+    pixel_index *= 4;
+    vec4 pos_in_world = get_world_coordinates(i, j, max_x, max_y);
+    vec2 pixel_size = vec2(pos_in_world.z() / (float)max_x, pos_in_world.w() / (float)max_y);
+    vec4 c = aa_color(pos_in_world.x(), pos_in_world.y(), pixel_size, pos_in_world.z(), pos_in_world.w(), aa_iter, ref_iter, gl_iter, ind_rays, cam, world, lights, &local_rand_state);
+    c.saturate();
+    //Ray r = cam->getRay(pos_in_world.x(), pos_in_world.y(), pos_in_world.z(), pos_in_world.w());
+    //vec4 c = color(r, world, lights, &local_rand_state);
+    fb[pixel_index + 0] = c.r();
+    fb[pixel_index + 1] = c.g();
+    fb[pixel_index + 2] = c.b();
+    fb[pixel_index + 3] = c.a();
+    rand_state[idx] = local_rand_state;
+}
+
 __global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // Camera
@@ -616,17 +637,19 @@ int main()
 
 #pragma region Parameters
 
-    unsigned int nx = 720;
-    unsigned int ny = 720;
-    unsigned int tx = 19; // Optimized
-    unsigned int ty = 19; // Optimized
-    unsigned int aa_iter = 1; // Optimized
-    unsigned int ref_iter = 4; // Optimized
-    unsigned int gl_iter = 5; // Can also be 4 but its darker
-    unsigned int ind_rays = 75; // I think its good enough
-    unsigned int shadowSamples = 50; // Optimized
-    unsigned int num_pixels = nx * ny;
-    size_t fb_size = 4 * num_pixels * sizeof(float);
+    const bool renderAllAtOnce = true;
+    const unsigned int drawEveryXFrame = 200;
+    const unsigned int nx = 720;
+    const unsigned int ny = 720;
+    const unsigned int tx = 19; // Optimized
+    const unsigned int ty = 19; // Optimized
+    const unsigned int aa_iter = 1; // Optimized
+    const unsigned int ref_iter = 4; // Optimized
+    const unsigned int gl_iter = 5; // Can also be 4 but its darker
+    const unsigned int ind_rays = 75; // I think its good enough
+    const unsigned int shadowSamples = 50; // Optimized
+    const unsigned int num_pixels = nx * ny;
+    const size_t fb_size = 4 * num_pixels * sizeof(float);
 
 #pragma endregion
 
@@ -637,6 +660,24 @@ int main()
 
     checkCudaErrors(cudaEventCreate(&start));
     checkCudaErrors(cudaEventCreate(&stop));
+
+#pragma endregion
+
+#pragma region Stream
+
+    cudaStream_t renderStream;
+    checkCudaErrors(cudaStreamCreate(&renderStream));
+
+#pragma endregion
+
+#pragma region SFML
+
+    ::sf::Texture texture;
+    if (!texture.resize({ nx, ny })) {
+        fprintf(stderr, "SFML Texture couldn't been resized!");
+        exit(98);
+    }
+    ::sf::Sprite sprite(texture);
 
 #pragma endregion
 
@@ -686,13 +727,126 @@ int main()
 
     checkCudaErrors(cudaEventRecord(start, 0));
 
-    renderWithCuda(fb, nx, ny, tx, ty, fb_size, aa_iter, ref_iter, gl_iter, ind_rays, *d_cam, d_gworld, d_lworld, d_rand_state);
+    if (renderAllAtOnce) {
+        renderWithCuda(fb, nx, ny, tx, ty, fb_size, aa_iter, ref_iter, gl_iter, ind_rays, *d_cam, d_gworld, d_lworld, d_rand_state);
+    }
+    else {
+        unsigned int blockX = 0;
+        unsigned int blockY = 0;
+        unsigned int count = drawEveryXFrame;
+        const unsigned int blocksX = (nx + tx - 1) / tx;
+        const unsigned int blocksY = (ny + ty - 1) / ty;
+        const dim3 blocks(1, 1);
+        const dim3 threads(tx, ty);
+
+        float* fb_cpu = new float[num_pixels * 4];
+        uint8_t* pixels = new uint8_t[num_pixels * 4];
+        ::sf::RenderWindow window(::sf::VideoMode({ nx, ny }), "CUDA Ray Tracer");
+
+        while (window.isOpen()) {
+            while (const ::std::optional event = window.pollEvent())
+            {
+                if (event->is<::sf::Event::Closed>())
+                {
+                    window.close();
+                }
+                else if (const auto* keyPressed = event->getIf<::sf::Event::KeyPressed>())
+                {
+                    if (keyPressed->scancode == ::sf::Keyboard::Scancode::Escape)
+                        window.close();
+                }
+            }
+
+            if (blockY < blocksY) {
+                unsigned int startX = blockX * tx;
+                unsigned int startY = blockY * ty;
+
+                // kernel renderujący tylko ten jeden kafelek
+                render_partial<<<blocks, threads, 0, renderStream>>>(fb, nx, ny, startX, startY, aa_iter, ref_iter, gl_iter, ind_rays, *d_cam, d_gworld, d_lworld, d_rand_state);
+
+                ++blockX;
+                if (blockX >= blocksX) {
+                    blockX = 0;
+                    ++blockY;
+                }
+
+                ++count;
+                if (count <= drawEveryXFrame && blockY < blocksY) {
+                    checkCudaErrors(cudaStreamSynchronize(renderStream));
+                    continue;
+                }
+                count = 0;
+
+                checkCudaErrors(cudaMemcpyAsync(fb_cpu, fb, fb_size, cudaMemcpyDeviceToHost, renderStream));
+
+                checkCudaErrors(cudaStreamSynchronize(renderStream));
+
+                ::std::transform(fb_cpu, fb_cpu + (num_pixels * 4), pixels, [](float c) {
+                    return static_cast<uint8_t>(::std::clamp(c * 255.0f, 0.f, 255.f));
+                });
+
+                texture.update(pixels);
+
+                window.clear();
+                window.draw(sprite);
+                window.display();
+            }
+        }
+
+        checkCudaErrors(cudaDeviceSynchronize());
+
+        // Free SFML data
+        delete[] pixels;
+        delete[] fb_cpu;
+    }
 
     checkCudaErrors(cudaEventRecord(stop, 0));
     checkCudaErrors(cudaEventSynchronize(stop));
     checkCudaErrors(cudaEventElapsedTime(&elapsed_time, start, stop));
 
     printTime("Render", elapsed_time);
+
+#pragma endregion
+
+#pragma region SFMLOnce
+
+    if (renderAllAtOnce) {
+        uint8_t* pixels = new uint8_t[num_pixels * 4];
+        ::sf::RenderWindow window(::sf::VideoMode({ nx, ny }), "CUDA Ray Tracer");
+
+        ::std::transform(fb, fb + (num_pixels * 4), pixels, [](float c) {
+            return static_cast<uint8_t>(::std::clamp(c * 255.0f, 0.f, 255.f));
+        });
+
+        texture.update(pixels);
+
+        bool once = true;
+
+        while (window.isOpen()) {
+            while (const ::std::optional event = window.pollEvent())
+            {
+                if (event->is<::sf::Event::Closed>())
+                {
+                    window.close();
+                }
+                else if (const auto* keyPressed = event->getIf<::sf::Event::KeyPressed>())
+                {
+                    if (keyPressed->scancode == ::sf::Keyboard::Scancode::Escape)
+                        window.close();
+                }
+            }
+
+            if (once) {
+                once = false;
+                window.clear();
+                window.draw(sprite);
+                window.display();
+            }
+        }
+
+        // Free SFML data
+        delete[] pixels;
+    }
 
 #pragma endregion
 
@@ -715,6 +869,9 @@ int main()
 
     checkCudaErrors(cudaEventDestroy(start));
     checkCudaErrors(cudaEventDestroy(stop));
+
+    // Free Stream
+    checkCudaErrors(cudaStreamDestroy(renderStream));
 
     // Free all cuda resources
     checkCudaErrors(cudaFree(d_cam));
