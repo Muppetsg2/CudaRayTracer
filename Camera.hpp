@@ -27,7 +27,7 @@ namespace craytracer {
 			_pos = position;
 			_type = type;
 
-			_front = epsilon_equal(front.length(), 0.f, MSTD_EPSILON) ? vec3(0.f, 0.f, -1.f) : front.normalized();
+			_front = epsilon_equal(front.length_sq(), 0.f, MSTD_EPSILON_SQ) ? vec3(0.f, 0.f, -1.f) : front.normalized();
 
 			setFov(fovRad);
 			setOrthographicScale(orthoScale);
@@ -62,7 +62,7 @@ namespace craytracer {
 		__device__ void setPosition(vec3 value) { _pos = value; }
 
 		__device__ void setFront(vec3 value) {
-			if (epsilon_equal(value.length(), 0.f, MSTD_EPSILON)) return;
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
 			_front = value.normalized();
 		}
 

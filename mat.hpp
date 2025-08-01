@@ -173,7 +173,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[col_idx], C, value);
 #else
-			::std::fill_n(&_values[col_idx], C, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[col_idx], C, value);
 #endif
 		}
 
@@ -183,7 +183,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[col_idx][first_idx], R - first_idx, value);
 #else
-			::std::fill_n(&_values[col_idx][first_idx], R - first_idx, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[col_idx][first_idx], R - first_idx, value);
 #endif
 		}
 
@@ -191,7 +191,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[0][0], R * C, value);
 #else
-			::std::fill_n(&_values[0][0], R * C, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[0][0], R * C, value);
 #endif
 		}
 
@@ -200,7 +200,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[0][0] + first_idx, size - first_idx, value);
 #else
-			::std::fill_n(&_values[0][0] + first_idx, size - first_idx, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[0][0] + first_idx, size - first_idx, value);
 #endif
 		}
 
@@ -208,7 +208,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[0][0], size, T(0));
 #else
-			::std::fill_n(&_values[0][0], size, T(0));
+			MSTD_STD_NAMESPACE::fill_n(&_values[0][0], size, T(0));
 #endif
 			size_t size = MSTD_STD_NAMESPACE::min(C, R);
 			for (size_t i = 0; i != size; ++i) {
@@ -731,8 +731,8 @@ namespace MSTD_NAMESPACE {
 			if (right == left) return mat<C, R, T>::identity();
 			if (top == bottom) return mat<C, R, T>::identity();
 #else
-			if (right == left) throw ::std::runtime_error("right cannot be equal left");
-			if (top == bottom) throw ::std::runtime_error("top cannot be equal bottom");
+			if (right == left) throw MSTD_STD_NAMESPACE::runtime_error("right cannot be equal left");
+			if (top == bottom) throw MSTD_STD_NAMESPACE::runtime_error("top cannot be equal bottom");
 #endif
 
 			const T& abs_near = MSTD_STD_NAMESPACE::abs(near);
@@ -741,7 +741,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return mat<C, R, T>::identity();
 #else
-				throw ::std::runtime_error("absolute of near cannot be equal absolute of far");
+				throw MSTD_STD_NAMESPACE::runtime_error("absolute of near cannot be equal absolute of far");
 #endif
 
 			const T& x_dir = right > left ? T(1) : T(-1);
@@ -795,7 +795,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 					return mat<C, R, T>::identity();
 #else
-					throw ::std::runtime_error("aspect was zero");
+					throw MSTD_STD_NAMESPACE::runtime_error("aspect was zero");
 #endif
 
 				right = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5) * abs_near;
@@ -825,8 +825,8 @@ namespace MSTD_NAMESPACE {
 			if (right == left) return mat<C, R, T>::identity();
 			if (top == bottom) return mat<C, R, T>::identity();
 #else
-			if (right == left) throw ::std::runtime_error("right cannot be equal left");
-			if (top == bottom) throw ::std::runtime_error("top cannot be equal bottom");
+			if (right == left) throw MSTD_STD_NAMESPACE::runtime_error("right cannot be equal left");
+			if (top == bottom) throw MSTD_STD_NAMESPACE::runtime_error("top cannot be equal bottom");
 #endif
 
 			const T& abs_near = MSTD_STD_NAMESPACE::abs(near);
@@ -835,7 +835,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return mat<C, R, T>::identity();
 #else
-				throw ::std::runtime_error("absolute of near cannot be equal absolute of far");
+				throw MSTD_STD_NAMESPACE::runtime_error("absolute of near cannot be equal absolute of far");
 #endif
 
 			const T& x_dir = right > left ? T(1) : T(-1);
@@ -974,11 +974,11 @@ namespace MSTD_NAMESPACE {
 		}
 
 #if _HAS_CXX20
-		MSTD_CUDA_EXPR mat<C - 1, R - 1, T> get_sub_matrix(const size_t & row_idx, const size_t & col_idx) const
+		MSTD_CUDA_EXPR mat<C - 1, R - 1, T> get_sub_matrix(const size_t& row_idx, const size_t& col_idx) const
 			requires (C > 1 && R > 1) {
 #else
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(R > 1 && _C > 1 && _C == C)>::type>
-		MSTD_CUDA_EXPR mat<C - 1, R - 1, T> get_sub_matrix(const size_t & row_idx, const size_t & col_idx) const {
+		MSTD_CUDA_EXPR mat<C - 1, R - 1, T> get_sub_matrix(const size_t& row_idx, const size_t& col_idx) const {
 #endif
 			mat<C - 1, R - 1, T> res;
 			for (size_t x = 0, sub_x = 0; x != C; ++x) {
@@ -1000,11 +1000,11 @@ namespace MSTD_NAMESPACE {
 		}
 
 #if _HAS_CXX20
-		MSTD_CUDA_EXPR mat<C, R - 1, T> get_sub_row_matrix(const size_t & row_idx) const
+		MSTD_CUDA_EXPR mat<C, R - 1, T> get_sub_row_matrix(const size_t& row_idx) const
 			requires (R > 1) {
 #else
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(R > 1 && _C == C)>::type>
-		MSTD_CUDA_EXPR mat<C, R - 1, T> get_sub_row_matrix(const size_t & row_idx) const {
+		MSTD_CUDA_EXPR mat<C, R - 1, T> get_sub_row_matrix(const size_t& row_idx) const {
 #endif
 			mat<C, R - 1, T> res;
 			for (size_t x = 0; x != C; ++x) {
@@ -1024,11 +1024,11 @@ namespace MSTD_NAMESPACE {
 		}
 
 #if _HAS_CXX20
-		MSTD_CUDA_EXPR mat<C - 1, R, T> get_sub_col_matrix(const size_t & col_idx) const
+		MSTD_CUDA_EXPR mat<C - 1, R, T> get_sub_col_matrix(const size_t& col_idx) const
 			requires (C > 1) {
 #else
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C > 1 && _C == C)>::type>
-		MSTD_CUDA_EXPR mat<C - 1, R, T> get_sub_col_matrix(const size_t & col_idx) const {
+		MSTD_CUDA_EXPR mat<C - 1, R, T> get_sub_col_matrix(const size_t& col_idx) const {
 #endif
 			mat<C - 1, R, T> res;
 			for (size_t x = 0, sub_x = 0; x != C; ++x) {
@@ -1055,7 +1055,7 @@ namespace MSTD_NAMESPACE {
 			return res.clamp(min_val, max_val);
 		}
 
-		MSTD_CUDA_EXPR mat<C, R, T>& clamp(const mat<C, R, T>&min_val, const mat<C, R, T>&max_val) {
+		MSTD_CUDA_EXPR mat<C, R, T>& clamp(const mat<C, R, T>& min_val, const mat<C, R, T>& max_val) {
 			for (size_t x = 0; x != C; ++x) {
 				for (size_t y = 0; y != R; ++y) {
 					_values[x][y] = MSTD_CLAMP(_values[x][y], min_val[x][y], max_val[x][y]);
@@ -1064,7 +1064,7 @@ namespace MSTD_NAMESPACE {
 			return *this;
 		}
 
-		MSTD_CUDA_EXPR mat<C, R, T> clampped(const mat<C, R, T>&min_val, const mat<C, R, T>&max_val) const {
+		MSTD_CUDA_EXPR mat<C, R, T> clampped(const mat<C, R, T>& min_val, const mat<C, R, T>& max_val) const {
 			mat<C, R, T> res = *this;
 			return res.clamp(min_val, max_val);
 		}
@@ -1184,7 +1184,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 					return mat<C, R, T>(_values);
 #else
-					throw ::std::runtime_error("division by zero");
+					throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 
 				return mat<C, R, T>(1.0 / _values[0][0]);
@@ -1197,7 +1197,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 					return mat<C, R, T>(_values);
 #else
-					throw ::std::runtime_error("determinant was zero");
+					throw MSTD_STD_NAMESPACE::runtime_error("determinant was zero");
 #endif
 
 				T invD = (T)(1.0 / det);
@@ -1252,7 +1252,7 @@ namespace MSTD_NAMESPACE {
 #pragma endregion // MATRIX_OPERATIONS
 
 #pragma region OPERATORS
-		MSTD_CUDA_EXPR mat<C, R, T>& operator+=(const mat<C, R, T>&other) {
+		MSTD_CUDA_EXPR mat<C, R, T>& operator+=(const mat<C, R, T>& other) {
 			for (size_t x = 0; x != C; ++x) {
 				for (size_t y = 0; y != R; ++y) {
 					_values[x][y] += other[x][y];
@@ -1261,7 +1261,7 @@ namespace MSTD_NAMESPACE {
 			return *this;
 		}
 
-		MSTD_CUDA_EXPR mat<C, R, T>& operator-=(const mat<C, R, T>&other) {
+		MSTD_CUDA_EXPR mat<C, R, T>& operator-=(const mat<C, R, T>& other) {
 			for (size_t x = 0; x != C; ++x) {
 				for (size_t y = 0; y != R; ++y) {
 					_values[x][y] -= other[x][y];
@@ -1302,7 +1302,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
-				throw ::std::runtime_error("division by zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 
 			for (size_t x = 0; x != C; ++x) {
@@ -1313,20 +1313,20 @@ namespace MSTD_NAMESPACE {
 			return *this;
 		}
 
-		MSTD_CUDA_EXPR mat<C, R, T> operator+(const mat<C, R, T>&other) const {
+		MSTD_CUDA_EXPR mat<C, R, T> operator+(const mat<C, R, T>& other) const {
 			mat<C, R, T> res = *this;
 			res += other;
 			return res;
 		}
 
-		MSTD_CUDA_EXPR mat<C, R, T> operator-(const mat<C, R, T>&other) const {
+		MSTD_CUDA_EXPR mat<C, R, T> operator-(const mat<C, R, T>& other) const {
 			mat<C, R, T> res = *this;
 			res -= other;
 			return res;
 		}
 
 		template<size_t OC>
-		MSTD_CUDA_EXPR mat<OC, R, T> operator*(const mat<OC, C, T>&other) const {
+		MSTD_CUDA_EXPR mat<OC, R, T> operator*(const mat<OC, C, T>& other) const {
 			mat<OC, R, T> res;
 			for (size_t x = 0; x != OC; ++x) {
 				for (size_t y = 0; y != R; ++y) {
@@ -1356,7 +1356,7 @@ namespace MSTD_NAMESPACE {
 			return res;
 		}
 
-		MSTD_CUDA_EXPR MSTD_FRIEND mat<C, R, T> operator*(const T& other, const mat<C, R, T>&matrix) {
+		MSTD_CUDA_EXPR MSTD_FRIEND mat<C, R, T> operator*(const T& other, const mat<C, R, T>& matrix) {
 			return matrix * other;
 		}
 
@@ -1366,7 +1366,7 @@ namespace MSTD_NAMESPACE {
 			return res;
 		}
 
-		MSTD_CUDA_EXPR ::MSTD_NAMESPACE::vec<R, T> operator*(const ::MSTD_NAMESPACE::vec<C, T>&other) const {
+		MSTD_CUDA_EXPR ::MSTD_NAMESPACE::vec<R, T> operator*(const ::MSTD_NAMESPACE::vec<C, T>& other) const {
 			::MSTD_NAMESPACE::vec<R, T> res;
 			for (size_t y = 0; y != R; ++y) {
 				for (size_t x = 0; x != C; ++x) {
@@ -1393,7 +1393,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		template<size_t OC, size_t OR>
-		MSTD_CUDA_EXPR bool operator==(const mat<OC, OR, T>&other) const {
+		MSTD_CUDA_EXPR bool operator==(const mat<OC, OR, T>& other) const {
 			if constexpr (OC != C || OR != R) {
 				return false;
 			}
@@ -1402,7 +1402,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 					if (!::thrust::equal(::thrust::device, _values[x], _values[x] + R, other[x])) return false;
 #else
-					if (::std::memcmp(_values[x], other[x], R * sizeof(T)) != 0) return false;
+					if (MSTD_STD_NAMESPACE::memcmp(_values[x], other[x], R * sizeof(T)) != 0) return false;
 #endif
 				}
 				return true;
@@ -1410,20 +1410,8 @@ namespace MSTD_NAMESPACE {
 		}
 
 		template<size_t OC, size_t OR>
-		MSTD_CUDA_EXPR bool operator!=(const mat<OC, OR, T>&other) const {
-			if constexpr (OC != C || OR != R) {
-				return true;
-			}
-			else {
-				for (size_t x = 0; x != C; ++x) {
-#ifdef MSTD_USE_CUDA
-					if (::thrust::equal(::thrust::device, _values[x], _values[x] + R, other[x])) return true;
-#else
-					if (::std::memcmp(_values[x], other[x], R * sizeof(T)) != 0) return true;
-#endif
-				}
-				return false;
-			}
+		MSTD_CUDA_EXPR bool operator!=(const mat<OC, OR, T>& other) const {
+			return !this->operator==(other);
 		}
 
 		MSTD_CUDA_EXPR operator const T* () const {
@@ -1440,14 +1428,14 @@ namespace MSTD_NAMESPACE {
 
 		// ostream operators are not supported on cuda
 #ifndef MSTD_USE_CUDA
-		MSTD_FRIEND ::std::ostream& operator<<(::std::ostream& str, const mat<C, R, T>& matrix) {
+		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const mat<C, R, T>& matrix) {
 			size_t cell_width = 0;
 
 			for (size_t y = 0; y != R; ++y) {
 				for (size_t x = 0; x != C; ++x) {
-					::std::ostringstream oss;
+					MSTD_STD_NAMESPACE::ostringstream oss;
 					oss << matrix[y][x];
-					cell_width = ::std::max(cell_width, oss.str().size());
+					cell_width = MSTD_STD_NAMESPACE::max(cell_width, oss.str().size());
 				}
 			}
 
@@ -1463,7 +1451,7 @@ namespace MSTD_NAMESPACE {
 				str << ' ';
 
 				for (size_t x = 0; x != C; ++x) {
-					str << ::std::setw(cell_width) << matrix[x][y];
+					str << MSTD_STD_NAMESPACE::setw(cell_width) << matrix[x][y];
 					str << ' ';
 				}
 
@@ -1477,7 +1465,7 @@ namespace MSTD_NAMESPACE {
 				}
 
 				if (y != R - 1) {
-					str << ::std::endl;
+					str << MSTD_STD_NAMESPACE::endl;
 				}
 			}
 			return str;

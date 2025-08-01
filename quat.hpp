@@ -191,7 +191,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
-				throw ::std::runtime_error("division by zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 			}
 			s /= other;
@@ -255,13 +255,13 @@ namespace MSTD_NAMESPACE {
 			return s == other.s && v == other.v;
 		}
 		MSTD_CUDA_EXPR bool operator!=(const quat<T>& other) const {
-			return s != other.s || v != other.v;
+			return !(*this == other);
 		}
 
 		// ostream operators are not supported on cuda
 #ifndef MSTD_USE_CUDA
-		MSTD_FRIEND ::std::ostream& operator<<(::std::ostream& str, const quat<T>& quaternion) {
-			return str << "(" << ::std::to_string(quaternion.s) << ", " << quaternion.v << ")";
+		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const quat<T>& quaternion) {
+			return str << "(" << MSTD_STD_NAMESPACE::to_string(quaternion.s) << ", " << quaternion.v << ")";
 		}
 #else
 		MSTD_CUDA_EXPR void print() const {

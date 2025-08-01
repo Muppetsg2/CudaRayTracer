@@ -3,6 +3,7 @@
 
 #define MSTD_PI      3.14159265358979323846
 #define MSTD_EPSILON 1e-4f
+#define MSTD_EPSILON_SQ 1e-8f
 
 #if defined(__CUDACC__) && !defined(MSTD_NO_CUDA)
 	#define MSTD_USE_CUDA

@@ -50,7 +50,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[0], N, value);
 #else
-			::std::fill_n(&_values[0], N, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[0], N, value);
 #endif
 		}
 
@@ -59,7 +59,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 			::thrust::fill_n(::thrust::device, &_values[0] + first_idx, N - first_idx, value);
 #else
-			::std::fill_n(&_values[0] + first_idx, N - first_idx, value);
+			MSTD_STD_NAMESPACE::fill_n(&_values[0] + first_idx, N - first_idx, value);
 #endif
 		}
 
@@ -256,7 +256,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR bool is_normalized() const {
-			return length() == T(1);
+			return length_sq() == T(1);
 		}
 #pragma endregion // PREDEFINED_CHECKS
 
@@ -379,12 +379,20 @@ namespace MSTD_NAMESPACE {
 #pragma endregion // VECTOR_GETTERS
 
 #pragma region VECTOR_OPERATIONS
-		MSTD_CUDA_EXPR T length() const {
+		MSTD_CUDA_EXPR T length_sq() const {
 			T value = T(0);
 			for (size_t i = 0; i != N; ++i) {
 				value += _values[i] * _values[i];
 			}
-			return static_cast<T>(MSTD_STD_NAMESPACE::sqrt(value));
+			return value;
+		}
+
+		MSTD_CUDA_EXPR T length() const {
+#ifdef MSTD_USE_CUDA
+			return static_cast<T>(T(1) / rsqrt(length_sq()));
+#else
+			return static_cast<T>(MSTD_STD_NAMESPACE::sqrt(length_sq()));
+#endif
 		}
 
 		MSTD_CUDA_EXPR vec<N, T>& normalize() {
@@ -393,7 +401,7 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
-				throw ::std::runtime_error("length was zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("length was zero");
 #endif
 			}
 			*this /= len;
@@ -413,25 +421,22 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR T angle_between(const vec<N, T>& other) const {
-			T this_len = length();
-			if (this_len == T(0)) {
+			T this_len = length_sq();
+			T other_len = other.length_sq();
+
+			if (this_len == T(0) || other_len == T(0)) {
 #ifdef MSTD_USE_CUDA
 				return T(0);
 #else
-				throw ::std::runtime_error("length was zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("length was zero");
 #endif
 			}
 
-			T other_len = other.length();
-			if (other_len == T(0)) {
 #ifdef MSTD_USE_CUDA
-				return T(0);
+			return MSTD_STD_NAMESPACE::acos(dot(other) * rsqrt(this_len * other_len));
 #else
-				throw ::std::runtime_error("length was zero");
+			return MSTD_STD_NAMESPACE::acos(dot(other) / MSTD_STD_NAMESPACE::sqrt(this_len * other_len));
 #endif
-			}
-
-			return MSTD_STD_NAMESPACE::acos(dot(other) / (this_len * other_len));
 		}
 
 		MSTD_CUDA_EXPR vec<N, T>& reflect(const vec<N, T>& normal) noexcept {
@@ -452,8 +457,12 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR vec<N, T> refracted(const vec<N, T>& normal, const T& eta) const {
 			float cos_theta = MSTD_STD_NAMESPACE::min((-(*this)).dot(normal), 1.0f);
 			vec<N, T> r_out_perp = eta * (*this + cos_theta * normal);
-			float length = r_out_perp.length();
-			vec<N, T> r_out_parallel = -MSTD_STD_NAMESPACE::sqrt(MSTD_STD_NAMESPACE::abs(1.0f - length * length)) * normal;
+			float length_sq = r_out_perp.length_sq();
+#ifdef MSTD_USE_CUDA
+			vec<N, T> r_out_parallel = -normal / rsqrt(MSTD_STD_NAMESPACE::abs(1.0f - length_sq));
+#else
+			vec<N, T> r_out_parallel = -MSTD_STD_NAMESPACE::sqrt(MSTD_STD_NAMESPACE::abs(1.0f - length_sq)) * normal;
+#endif
 			return r_out_perp + r_out_parallel;
 		}
 
@@ -617,15 +626,26 @@ namespace MSTD_NAMESPACE {
 			return *this;
 		}
 		MSTD_CUDA_EXPR vec<N, T>& operator/=(const vec<N, T>& other) {
-			if (other == vec<N, T>::zero()) {
+			if (other.is_zero()) {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
-				throw ::std::runtime_error("division by zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 			}
-			for (size_t i = 0; i != N; ++i) {
-				_values[i] /= other[i];
+			if constexpr (!MSTD_STD_NAMESPACE::is_same_v<T, float> && !MSTD_STD_NAMESPACE::is_same_v<T, double>) {
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] /= other[i];
+				}
+			}
+			else {
+				T one_over_other[N];
+				for (size_t i = 0; i != N; ++i) {
+					one_over_other[i] = T(1) / other[i];
+				}
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] *= one_over_other[i];
+				}
 			}
 			return *this;
 		}
@@ -653,11 +673,19 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
-				throw ::std::runtime_error("division by zero");
+				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 			}
-			for (size_t i = 0; i != N; ++i) {
-				_values[i] /= other;
+			if constexpr (!MSTD_STD_NAMESPACE::is_same_v<T, float> && !MSTD_STD_NAMESPACE::is_same_v<T, double>) {
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] /= other;
+				}
+			}
+			else {
+				T one_over_other = T(1) / other;
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] *= one_over_other;
+				}
 			}
 			return *this;
 		}
@@ -730,22 +758,13 @@ namespace MSTD_NAMESPACE {
 #ifdef MSTD_USE_CUDA
 				return ::thrust::equal(::thrust::device, _values, _values + N, static_cast<const T*>(other));
 #else
-				return ::std::memcmp(_values, static_cast<const T*>(other), N * sizeof(T)) == 0;
+				return MSTD_STD_NAMESPACE::memcmp(_values, static_cast<const T*>(other), N * sizeof(T)) == 0;
 #endif
 			}
 		}
 		template<size_t ON>
 		MSTD_CUDA_EXPR bool operator!=(const vec<ON, T>& other) const {
-			if constexpr (N != ON) {
-				return true;
-			}
-			else {
-#ifdef MSTD_USE_CUDA
-				return !::thrust::equal(::thrust::device, _values, _values + N, static_cast<const T*>(other));
-#else
-				return ::std::memcmp(_values, static_cast<const T*>(other), N * sizeof(T)) != 0;
-#endif
-			}
+			return !(*this == other);
 		}
 
 		MSTD_CUDA_EXPR operator const T* () const {
@@ -761,10 +780,10 @@ namespace MSTD_NAMESPACE {
 
 		// ostream operators are not supported on cuda
 #ifndef MSTD_USE_CUDA
-		MSTD_FRIEND ::std::ostream& operator<<(::std::ostream & str, const vec<N, T>&vector) {
+		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const vec<N, T>& vector) {
 			str << "[";
 			for (size_t i = 0; i != N; ++i) {
-				str << ::std::to_string(vector[i]);
+				str << MSTD_STD_NAMESPACE::to_string(vector[i]);
 				if (i != N - 1) str << ", ";
 			}
 			return str << "]";

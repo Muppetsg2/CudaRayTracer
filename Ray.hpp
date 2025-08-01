@@ -26,11 +26,11 @@ namespace craytracer {
 		__device__ Ray() {}
 
 		__device__ Ray(vec3 origin, vec3 direction) : _distance(0.0f), _origin(origin) {
-			_direction = epsilon_equal(direction.length(), 0.f, MSTD_EPSILON) ? direction : direction.normalized();
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ) ? direction : direction.normalized();
 		}
 
 		__device__ Ray(vec3 origin, vec3 direction, float distance) : _origin(origin) {
-			_direction = epsilon_equal(direction.length(), 0.f, MSTD_EPSILON) ? direction : direction.normalized();
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ) ? direction : direction.normalized();
 			setDistance(distance);
 		}
 
@@ -43,7 +43,7 @@ namespace craytracer {
 		__device__ void setOrigin(vec3 value) { _origin = value; }
 
 		__device__ void setDirection(vec3 value) {
-			if (epsilon_equal(value.length(), 0.f, MSTD_EPSILON)) return;
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
 			_direction = value.normalized();
 		}
 
@@ -68,7 +68,7 @@ namespace craytracer {
 			vec3 cross = _direction.cross(v);
 #endif
 
-			if (cross.length() >= MSTD_EPSILON) return false;
+			if (cross.length_sq() >= MSTD_EPSILON_SQ) return false;
 
 #ifdef __CUDACC__
 			float dot = v.dot(direction);

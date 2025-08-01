@@ -208,7 +208,7 @@ namespace craytracer {
 			// construct orthonormal basis around N
 			vec3 T1, T2;
 			T1 = (viewDir - norm * viewDir.dot(norm));
-			if (!epsilon_equal(T1.length(), 0.f, MSTD_EPSILON)) T1.normalize();
+			if (!epsilon_equal(T1.length_sq(), 0.f, MSTD_EPSILON_SQ)) T1.normalize();
 			T2 = norm.cross(T1);
 
 			// rotate area light in (T1, T2, N) basis
@@ -232,10 +232,10 @@ namespace craytracer {
 				vec3 lightNormal = (points[1] - points[0]).cross(points[3] - points[0]);
 				bool behind = (dir.dot(lightNormal) < 0.0f);
 
-				L[0] = epsilon_equal(L[0].length(), 0.f, MSTD_EPSILON) ? L[0] : L[0].normalized();
-				L[1] = epsilon_equal(L[1].length(), 0.f, MSTD_EPSILON) ? L[1] : L[1].normalized();
-				L[2] = epsilon_equal(L[2].length(), 0.f, MSTD_EPSILON) ? L[2] : L[2].normalized();
-				L[3] = epsilon_equal(L[3].length(), 0.f, MSTD_EPSILON) ? L[3] : L[3].normalized();
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[3] : L[3].normalized();
 
 				vec3 vsum = vec3::zero();
 
@@ -272,11 +272,11 @@ namespace craytracer {
 					return vec3::zero();
 
 				// project onto sphere
-				L[0] = epsilon_equal(L[0].length(), 0.f, MSTD_EPSILON) ? L[0] : L[0].normalized();
-				L[1] = epsilon_equal(L[1].length(), 0.f, MSTD_EPSILON) ? L[1] : L[1].normalized();
-				L[2] = epsilon_equal(L[2].length(), 0.f, MSTD_EPSILON) ? L[2] : L[2].normalized();
-				L[3] = epsilon_equal(L[3].length(), 0.f, MSTD_EPSILON) ? L[3] : L[3].normalized();
-				L[4] = epsilon_equal(L[4].length(), 0.f, MSTD_EPSILON) ? L[4] : L[4].normalized();
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[3] : L[3].normalized();
+				L[4] = epsilon_equal(L[4].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[4] : L[4].normalized();
 
 				// integrate
 				sum += _integrateEdge(L[0], L[1]);
@@ -496,7 +496,7 @@ namespace craytracer {
 		}
 
 		__device__ void rotate(vec3 axis, float radians) {
-			if (epsilon_equal(axis.length(), 0.f, MSTD_EPSILON)) return;
+			if (epsilon_equal(axis.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
 			vec3 rotAxis = axis.normalized();
 			for (vec3& pt : _points) {
 				pt.rotate(rotAxis, radians);

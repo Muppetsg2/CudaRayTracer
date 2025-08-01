@@ -125,7 +125,7 @@ namespace craytracer {
 			vec3 lightDir = _pos - input.fragPos;
 #endif
 
-			if (!epsilon_equal(lightDir.length(), 0.0f, MSTD_EPSILON)) lightDir.normalize();
+			if (!epsilon_equal(lightDir.length_sq(), 0.0f, MSTD_EPSILON_SQ)) lightDir.normalize();
 
 #ifdef __CUDACC__
 			// diffuse
