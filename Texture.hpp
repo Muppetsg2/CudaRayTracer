@@ -120,7 +120,11 @@ namespace craytracer {
 			if (resF.x() < 0.f || resF.x() > 1.f) {
 				switch (_horizontalWrapMode) {
 					case WRAP_MODE::CLAMP: {
+#ifdef __CUDACC__
+						resF.x() = saturate<float, true>(resF.x());
+#else
 						resF.x() = saturate(resF.x());
+#endif
 						break;
 					}
 					case WRAP_MODE::REPEAT: {
@@ -141,7 +145,11 @@ namespace craytracer {
 			if (resF.y() < 0.f || resF.y() > 1.f) {
 				switch (_verticalWrapMode) {
 					case WRAP_MODE::CLAMP: {
+#ifdef __CUDACC__
+						resF.y() = saturate<float, true>(resF.y());
+#else
 						resF.y() = saturate(resF.y());
+#endif
 						break;
 					}
 					case WRAP_MODE::REPEAT: {

@@ -575,8 +575,8 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 3 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> screen(const T& left, const T& right, const T& bottom, const T& top, const T& width, const T& height) {
 #endif
-			const T& inv_bt = 1.0 / (bottom - top);
-			const T& inv_rl = 1.0 / (right - left);
+			const T& inv_bt = T(1) / (bottom - top);
+			const T& inv_rl = T(1) / (right - left);
 
 			mat<C, R, T> res = mat<C, R, T>::zero();
 			res[0][0] = width * inv_rl;
@@ -605,8 +605,21 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 4 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_x(const T& radians) {
 #endif
-			T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
-			T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+
+#ifdef MSTD_USE_CUDA
+			T cosA, sinA;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				cosA = __cosf(radians);
+				sinA = __sinf(radians);
+			}
+			else {
+				cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+				sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+			}
+#else
+			const T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+			const T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+#endif
 
 			// 4x4
 			mat<C, R, T> res = mat<C, R, T>::identity();
@@ -623,8 +636,21 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 4 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_y(const T& radians) {
 #endif
-			T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
-			T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+
+#ifdef MSTD_USE_CUDA
+			T cosA, sinA;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				cosA = __cosf(radians);
+				sinA = __sinf(radians);
+			}
+			else {
+				cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+				sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+			}
+#else
+			const T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+			const T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+#endif
 
 			// 4x4
 			mat<C, R, T> res = mat<C, R, T>::identity();
@@ -641,8 +667,21 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 4 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_z(const T& radians) {
 #endif
-			T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
-			T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+
+#ifdef MSTD_USE_CUDA
+			T cosA, sinA;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				cosA = __cosf(radians);
+				sinA = __sinf(radians);
+			}
+			else {
+				cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+				sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+			}
+#else
+			const T cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+			const T sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+#endif
 
 			// 4x4
 			mat<C, R, T> res = mat<C, R, T>::identity();
@@ -660,8 +699,22 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 4 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> rot(const ::MSTD_NAMESPACE::vec<R - 1, T>&axis, const T& radians) {
 #endif
-			const T& sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+
+#ifdef MSTD_USE_CUDA
+			T cosA, sinA;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				cosA = __cosf(radians);
+				sinA = __sinf(radians);
+			}
+			else {
+				cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+				sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+			}
+#else
 			const T& cosA = (T)MSTD_STD_NAMESPACE::cos(radians);
+			const T& sinA = (T)MSTD_STD_NAMESPACE::sin(radians);
+#endif
+
 			const T& oneMinCosA = T(1) - cosA;
 
 			::MSTD_NAMESPACE::vec<R - 1, T> norm_axis = axis;

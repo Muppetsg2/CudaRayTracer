@@ -57,8 +57,8 @@ __device__ __forceinline__ ::cuda::std::pair<vec3, vec3> get_random_ray_values_i
     float sinTheta = 1.f - r1 * r1;
     float phi = r2 * 2.f * (float)M_PI;
 
-    float x = sinTheta * ::cuda::std::cosf(phi);
-    float z = sinTheta * ::cuda::std::sinf(phi);
+    float x = sinTheta * __cosf(phi);
+    float z = sinTheta * __sinf(phi);
 
     vec3 rayDirWorld = vec3(
         x * Nz.x() + r1 * hitNormal.x() + z * Nx.x(),
@@ -244,7 +244,7 @@ __device__ vec4 aa_color(float centerX, float centerY, vec2 size, float width, f
     while (stack_top > 0ull) {
         AA_Task t = stack[--stack_top];
         halfSize = t.size * 0.5f;
-        float mult = 1.f / ::cuda::std::powf(4.f, aa_iter - t.sample);
+        float mult = 1.f / static_cast<float>(1 << (2 * (aa_iter - t.sample)));
 
         if (t.sample == 0u) {
             r = cam->getRay(t.centerX, t.centerY, width, height);
@@ -270,13 +270,7 @@ __device__ vec4 aa_color(float centerX, float centerY, vec2 size, float width, f
                 t.centerY + aa_offsets[i].y() * halfSize.y(),
                 width, height);
             colors[i] = color(r, world, lights, local_rand_state, ref_iter, gl_iter, ind_rays);
-        }
-
-        for (int i = 1; i < 4; ++i) {
-            if (colors[i] != colors[0]) {
-                allEqual = false;
-                break;
-            }
+            if (i != 0 && allEqual && colors[i] != colors[0]) allEqual = false;
         }
 
         if (allEqual) {

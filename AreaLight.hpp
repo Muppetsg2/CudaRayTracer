@@ -541,15 +541,15 @@ namespace craytracer {
 			const vec3 dcol = ldg_vec4(&input.mat->diffuse);
 			const vec3 scol = ldg_vec4(&input.mat->specular);
 
-			float roughness = 1.0f - 0.25f * ::cuda::std::powf(ldg_float(&input.mat->shininess), 0.2f);
+			const float roughness = 1.0f - 0.25f * __powf(ldg_float(&input.mat->shininess), 0.2f);
 #else
 			const vec3 dcol = input.mat->diffuse;
 			const vec3 scol = input.mat->specular;
 
-			float roughness = 1.0f - 0.25f * ::std::powf(input.mat->shininess, 0.2f);
+			float roughness = 1.0f - 0.25f * ::std::expf(::std::logf(input.mat->shininess) * 0.2f);
 #endif
 
-			float ndotv = saturate(input.norm.dot(input.viewDir));
+			float ndotv = saturate<float, true>(input.norm.dot(input.viewDir));
 
 #ifdef __CUDACC__
 			vec2 uv = vec2(roughness, 1.0f / rsqrtf(1.0f - ndotv));

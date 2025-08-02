@@ -468,7 +468,11 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR vec<N, T>& saturate() noexcept {
 			for (size_t i = 0; i != N; ++i) {
+#ifdef MSTD_USE_CUDA
+				_values[i] = ::MSTD_NAMESPACE::saturate<T, true>(_values[i]);
+#else
 				_values[i] = ::MSTD_NAMESPACE::saturate(_values[i]);
+#endif
 			}
 			return *this;
 		}

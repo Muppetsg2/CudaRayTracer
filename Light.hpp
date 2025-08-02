@@ -141,21 +141,21 @@ namespace craytracer {
 			// specular
 			// PHONG
 			//vec3 reflectDir = reflect(-lightDir, input.norm);
-			//float spec = ::cuda::std::powf(::cuda::std::max(input.viewDir.dot(reflectDir), 0.0f), ldg_float(&input.mat->shininess));
+			//float spec = __powf(::cuda::std::max(input.viewDir.dot(reflectDir), 0.0f), ldg_float(&input.mat->shininess));
 #else
 			// specular
 			// PHONG
 			//vec3 reflectDir = reflect(-lightDir, input.norm);
-			//float spec = ::std::powf(::std::max(input.viewDir.dot(reflectDir), 0.0f), input.mat->shininess);
+			//float spec = ::std::expf(::std::logf(::std::max(input.viewDir.dot(reflectDir), 0.0f)) * input.mat->shininess);
 #endif
 
 			// BLINN-PHONG
 			vec3 halfwayDir = (lightDir + input.viewDir).normalized();
 #ifdef __CUDACC__
-			float spec = ::cuda::std::powf(::cuda::std::max(input.norm.dot(halfwayDir), 0.0f), ldg_float(&input.mat->shininess));
+			float spec = __powf(::cuda::std::max(input.norm.dot(halfwayDir), 0.0f), ldg_float(&input.mat->shininess));
 			vec3 specular = lcol * (spec * ldg_vec4(&input.mat->specular)) * intensity;
 #else
-			float spec = ::std::powf(::std::max(input.norm.dot(halfwayDir), 0.0f), input.mat->shininess);
+			float spec = ::std::expf(::std::logf(::std::max(input.norm.dot(halfwayDir), 0.0f)) * input.mat->shininess);
 			vec3 specular = lcol * (spec * input.mat->specular) * _intensity;
 #endif
 

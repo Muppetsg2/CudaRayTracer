@@ -40,9 +40,14 @@ namespace MSTD_NAMESPACE {
 		return MSTD_STD_NAMESPACE::abs(a - b) < epsilon;
 	}
 
-	template<class T>
+	template<class T, bool cuda_version = false>
 	MSTD_CUDA_EXPR static constexpr T saturate(const T& a) noexcept {
-		return MSTD_CLAMP(a, T(0), T(1));
+		if constexpr (cuda_version && MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+			return __saturatef(a);
+		}
+		else {
+			return MSTD_CLAMP(a, T(0), T(1));
+		}
 	}
 
 	template<class T>
@@ -61,6 +66,10 @@ namespace MSTD_NAMESPACE {
 		// Use Schlick's approximation for reflectance.
 		float r0 = (1.0f - refraction_index) / (1.0f + refraction_index);
 		r0 = r0 * r0;
-		return r0 + (1.0f - r0) * MSTD_STD_NAMESPACE::powf((1.0f - cosine), 5.0f);
+#ifdef MSTD_USE_CUDA
+		return r0 + (1.0f - r0) * __powf(1.0f - cosine, 5.0f);
+#else
+		return r0 + (1.0f - r0) * MSTD_STD_NAMESPACE::expf(MSTD_STD_NAMESPACE::logf(1.0f - cosine) * 5.0f);
+#endif
 	}
 }

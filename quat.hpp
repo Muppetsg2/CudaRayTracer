@@ -52,7 +52,16 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static quat<T> rotation(const vec_type& axis, const T& radians) {
 			quat<T> q;
 			if (!axis.is_zero()) {
+#ifdef MSTD_USE_CUDA
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					q = quat<T>(__cosf(radians * 0.5f), axis.normalized() * __sinf(radians * 0.5f));
+				}
+				else {
+					q = quat<T>((T)MSTD_STD_NAMESPACE::cos(radians * 0.5), axis.normalized() * (T)MSTD_STD_NAMESPACE::sin(radians * 0.5));
+				}
+#else
 				q = quat<T>((T)MSTD_STD_NAMESPACE::cos(radians * 0.5), axis.normalized() * (T)MSTD_STD_NAMESPACE::sin(radians * 0.5));
+#endif
 			}
 			else {
 				q = quat<T>((T)MSTD_STD_NAMESPACE::cos(radians * 0.5), axis);
