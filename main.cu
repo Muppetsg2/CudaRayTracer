@@ -663,13 +663,6 @@ int main()
 
 #pragma endregion
 
-#pragma region Stream
-
-    cudaStream_t renderStream;
-    checkCudaErrors(cudaStreamCreate(&renderStream));
-
-#pragma endregion
-
 #pragma region SFML
 
     ::sf::Texture texture;
@@ -739,6 +732,9 @@ int main()
         const dim3 blocks(1, 1);
         const dim3 threads(tx, ty);
 
+        cudaStream_t renderStream;
+        checkCudaErrors(cudaStreamCreate(&renderStream));
+
         float* fb_cpu = new float[num_pixels * 4];
         uint8_t* pixels = new uint8_t[num_pixels * 4];
         ::sf::RenderWindow window(::sf::VideoMode({ nx, ny }), "CUDA Ray Tracer");
@@ -798,6 +794,9 @@ int main()
         // Free SFML data
         delete[] pixels;
         delete[] fb_cpu;
+
+        // Free Stream
+        checkCudaErrors(cudaStreamDestroy(renderStream));
     }
 
     checkCudaErrors(cudaEventRecord(stop, 0));
@@ -869,9 +868,6 @@ int main()
 
     checkCudaErrors(cudaEventDestroy(start));
     checkCudaErrors(cudaEventDestroy(stop));
-
-    // Free Stream
-    checkCudaErrors(cudaStreamDestroy(renderStream));
 
     // Free all cuda resources
     checkCudaErrors(cudaFree(d_cam));
