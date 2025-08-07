@@ -1,10 +1,6 @@
 #pragma once
 #include <cstdint>
 
-#define MSTD_PI      3.14159265358979323846
-#define MSTD_EPSILON 1e-4f
-#define MSTD_EPSILON_SQ 1e-8f
-
 #if defined(__CUDACC__) && !defined(MSTD_NO_CUDA)
 	#define MSTD_USE_CUDA
 #endif
@@ -14,6 +10,7 @@
 #include <thrust/equal.h>
 #include <thrust/functional.h>
 #include <thrust/execution_policy.h>
+#include <cuda_runtime.h>
 #define MSTD_FRIEND friend
 #define MSTD_NAMESPACE cmstd
 #define MSTD_STD_NAMESPACE ::cuda::std
@@ -35,6 +32,48 @@
 #endif
 
 namespace MSTD_NAMESPACE {
+
+	template<typename T>
+	static constexpr T MSTD_PI = static_cast<T>(3.14159265358979323846); // pi
+
+	template<typename T>
+	static constexpr T MSTD_1_PI = static_cast<T>(0.31830988618379067153); // 1/pi
+
+	template<typename T>
+	static constexpr T MSTD_1_PI_2 = static_cast<T>(0.15915494309189533576); // 1/(2*pi)
+
+	template<typename T>
+	static constexpr T MSTD_HALF_PI = static_cast<T>(1.57079632679489661923); // pi/2
+
+	template<typename T>
+	static constexpr T MSTD_PI_2 = static_cast<T>(6.28318530717958647692); // 2*pi
+
+	template<typename T>
+	static constexpr T MSTD_EPSILON = static_cast<T>(0.0001);
+
+	template<typename T>
+	static constexpr T MSTD_EPSILON_SQ = static_cast<T>(0.00000001);
+
+	template<typename T>
+	static constexpr T MSTD_DEG_TO_RAD = static_cast<T>(0.01745329251994329576); // 180/pi
+
+	template<typename T>
+	static constexpr T MSTD_RAD_TO_DEG = static_cast<T>(57.29577951308232087679); // pi/180
+
+#ifdef MSTD_USE_CUDA
+
+	__device__ __constant__ float MSTD_CUDA_PI = 3.14159265358979323846f; // pi
+	__device__ __constant__ float MSTD_CUDA_1_PI = 0.31830988618379067153f; // 1/pi
+	__device__ __constant__ float MSTD_CUDA_1_PI_2 = 0.15915494309189533576f; // 1/(2*pi)
+	__device__ __constant__ float MSTD_CUDA_HALF_PI = 1.57079632679489661923f; // pi/2
+	__device__ __constant__ float MSTD_CUDA_PI_2 = 6.28318530717958647692f; // 2*pi
+	__device__ __constant__ float MSTD_CUDA_EPSILON = 1e-4f;
+	__device__ __constant__ float MSTD_CUDA_EPSILON_SQ = 1e-8f;
+	__device__ __constant__ float MSTD_CUDA_DEG_TO_RAD = 0.01745329251994329576f; // 180/pi
+	__device__ __constant__ float MSTD_CUDA_RAD_TO_DEG = 57.29577951308232087679f; // pi/180
+
+#endif
+
 #if _HAS_CXX20
 	template<class T>
 	concept arithmetic = MSTD_STD_NAMESPACE::is_arithmetic_v<T>;

@@ -26,11 +26,19 @@ namespace craytracer {
 		__device__ Ray() {}
 
 		__device__ Ray(vec3 origin, vec3 direction) : _distance(0.0f), _origin(origin) {
-			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ) ? direction : direction.normalized();
+#ifdef __CUDACC__
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? direction : direction.normalized();
+#else
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? direction : direction.normalized();
+#endif
 		}
 
 		__device__ Ray(vec3 origin, vec3 direction, float distance) : _origin(origin) {
-			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ) ? direction : direction.normalized();
+#ifdef __CUDACC__
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? direction : direction.normalized();
+#else
+			_direction = epsilon_equal(direction.length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? direction : direction.normalized();
+#endif
 			setDistance(distance);
 		}
 
@@ -43,7 +51,11 @@ namespace craytracer {
 		__device__ void setOrigin(vec3 value) { _origin = value; }
 
 		__device__ void setDirection(vec3 value) {
-			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
+#ifdef __CUDACC__
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ)) return;
+#else
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ<float>)) return;
+#endif
 			_direction = value.normalized();
 		}
 
@@ -63,20 +75,22 @@ namespace craytracer {
 			const float distance = ldg_float(&_distance);
 			vec3 v = point - origin;
 			vec3 cross = direction.cross(v);
+
+			if (cross.length_sq() >= MSTD_CUDA_EPSILON_SQ) return false;
 #else
 			vec3 v = point - _origin;
 			vec3 cross = _direction.cross(v);
-#endif
 
-			if (cross.length_sq() >= MSTD_EPSILON_SQ) return false;
+			if (cross.length_sq() >= MSTD_EPSILON_SQ<float>) return false;
+#endif
 
 #ifdef __CUDACC__
 			float dot = v.dot(direction);
-			if (epsilon_equal(distance, 0.f, MSTD_EPSILON)) return dot >= 0.f;
+			if (epsilon_equal(distance, 0.f, MSTD_CUDA_EPSILON)) return dot >= 0.f;
 			return dot >= 0.f && dot <= distance;
 #else
 			float dot = v.dot(_direction);
-			if (epsilon_equal(_distance, 0.f, MSTD_EPSILON)) return dot >= 0.f;
+			if (epsilon_equal(_distance, 0.f, MSTD_EPSILON<float>)) return dot >= 0.f;
 			return dot >= 0.f && dot <= _distance;
 #endif
 		}

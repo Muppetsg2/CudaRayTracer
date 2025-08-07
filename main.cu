@@ -34,14 +34,9 @@
 using namespace craytracer;
 
 #define checkCudaErrors(val) checkCuda((val), #val, __FILE__, __LINE__)
-void checkCuda(cudaError_t result, char const* const func, const char* const file, int const line) {
-    if (result) {
-        fprintf(stderr, "CUDA error = %d at %s: %d '%s'\n", static_cast<unsigned int>(result), file, line, func);
-        // Make sure we call CUDA Device Reset before exiting
-        cudaDeviceReset();
-        exit(99);
-    }
-}
+void checkCuda(cudaError_t result, char const* const func, const char* const file, int const line);
+
+bool initCuda();
 
 __device__ __forceinline__ void get_surface_coordinate_system(const vec3& hitNormal, vec3& Nx, vec3& Nz) {
     if (::cuda::std::fabsf(hitNormal.x()) > ::cuda::std::fabsf(hitNormal.y())) {
@@ -55,7 +50,7 @@ __device__ __forceinline__ void get_surface_coordinate_system(const vec3& hitNor
 
 __device__ __forceinline__ ::cuda::std::pair<vec3, vec3> get_random_ray_values_in_hemisphere(float r1, float r2, const vec3& hitPos, const vec3& hitNormal, const vec3& Nx, const vec3& Nz) {
     float sinTheta = 1.f - r1 * r1;
-    float phi = r2 * 2.f * (float)M_PI;
+    float phi = r2 * MSTD_CUDA_PI_2;
 
     float x = sinTheta * __cosf(phi);
     float z = sinTheta * __sinf(phi);
@@ -83,14 +78,14 @@ __device__ __forceinline__ ::cuda::std::pair<vec3, vec3> get_refraction_ray(Ray 
     vec3 norm = front_face ? hitNormal : -hitNormal;
 
     float ratio = refIndex / AIR_INDEX;
-    if (front_face) ratio = 1.0f / ratio;
+    if (front_face) ratio = __fdividef(1.0f, ratio);
     vec3 rayDirection = rayIn.getDirection().normalized();
 
     float cos_theta = ::cuda::std::fminf(dot(-rayDirection, norm), 1.0f);
-    float sin_theta = 1.0f / rsqrtf(1.0f - cos_theta * cos_theta);
+    float sin_theta = __fdividef(1.0f, rsqrtf(1.0f - cos_theta * cos_theta));
 
     //bool cannot_refract = ratio * sin_theta > 1.0f || reflectance(cos_theta, ratio) > random_double();
-    bool cannot_refract = ratio * sin_theta > 1.0f || reflectance(cos_theta, ratio) > 1.0f;
+    bool cannot_refract = ratio * sin_theta > 1.0f || reflectance<true>(cos_theta, ratio) > 1.0f;
 
     vec3 dir;
     if (cannot_refract) {
@@ -175,10 +170,11 @@ __device__ vec4 color(const Ray& r, Geometry** world, Light** lights, curandStat
 
                         if (stackPtr < MAX_STACK) {
                             p = get_random_ray_values_in_hemisphere(r1, r2, hit.hitPoint, hit.hitNormal, Nx, Nz);
+                            float one_over_ind_rays = 1.0f / static_cast<float>(ind_rays);
                             stack[stackPtr++] = {
                                 p.first,
                                 p.second,
-                                r1 * mat_diff * 2.f / ind_rays * state.attenuation,
+                                2.f * r1 * mat_diff * state.attenuation * one_over_ind_rays,
                                 ref_iter,
                                 state.global_depth - 1u
                             };
@@ -244,7 +240,7 @@ __device__ vec4 aa_color(float centerX, float centerY, vec2 size, float width, f
     while (stack_top > 0ull) {
         AA_Task t = stack[--stack_top];
         halfSize = t.size * 0.5f;
-        float mult = 1.f / static_cast<float>(1 << (2 * (aa_iter - t.sample)));
+        float mult = __fdividef(1.f, static_cast<float>(1 << (2 * (aa_iter - t.sample))));
 
         if (t.sample == 0u) {
             r = cam->getRay(t.centerX, t.centerY, width, height);
@@ -301,9 +297,9 @@ __device__ vec4 aa_color(float centerX, float centerY, vec2 size, float width, f
 __device__ __forceinline__ vec4 get_world_coordinates(unsigned int x, unsigned int y, unsigned int w, unsigned int h)
 {
     float height_world = 2.f;
-    float width_world = height_world * ((float)w / (float)h);
-    float x_world = remap((float)x, 0.f, (float)w, -width_world * 0.5f, width_world * 0.5f);
-    float y_world = remap((float)y, 0.f, (float)h, 1.f, -1.f);
+    float width_world = height_world * __fdividef((float)w, (float)h);
+    float x_world = remap<float, true>((float)x, 0.f, (float)w, -width_world * 0.5f, width_world * 0.5f);
+    float y_world = remap<float, true>((float)y, 0.f, (float)h, 1.f, -1.f);
 
     return vec4(x_world, y_world, width_world, height_world);
 }
@@ -329,7 +325,7 @@ __global__ void render(float* fb, unsigned int max_x, unsigned int max_y, unsign
     curandState local_rand_state = rand_state[idx];
     pixel_index *= 4;
     vec4 pos_in_world = get_world_coordinates(i, j, max_x, max_y);
-    vec2 pixel_size = vec2(pos_in_world.z() / (float)max_x, pos_in_world.w() / (float)max_y);
+    vec2 pixel_size = vec2(__fdividef(pos_in_world.z(), (float)max_x), __fdividef(pos_in_world.w(), (float)max_y));
     vec4 c = aa_color(pos_in_world.x(), pos_in_world.y(), pixel_size, pos_in_world.z(), pos_in_world.w(), aa_iter, ref_iter, gl_iter, ind_rays, cam, world, lights, &local_rand_state);
     c.saturate();
     //Ray r = cam->getRay(pos_in_world.x(), pos_in_world.y(), pos_in_world.z(), pos_in_world.w());
@@ -350,7 +346,7 @@ __global__ void render_partial(float* fb, unsigned int max_x, unsigned int max_y
     curandState local_rand_state = rand_state[idx];
     pixel_index *= 4;
     vec4 pos_in_world = get_world_coordinates(i, j, max_x, max_y);
-    vec2 pixel_size = vec2(pos_in_world.z() / (float)max_x, pos_in_world.w() / (float)max_y);
+    vec2 pixel_size = vec2(__fdividef(pos_in_world.z(), (float)max_x), __fdividef(pos_in_world.w(), (float)max_y));
     vec4 c = aa_color(pos_in_world.x(), pos_in_world.y(), pixel_size, pos_in_world.z(), pos_in_world.w(), aa_iter, ref_iter, gl_iter, ind_rays, cam, world, lights, &local_rand_state);
     c.saturate();
     //Ray r = cam->getRay(pos_in_world.x(), pos_in_world.y(), pos_in_world.z(), pos_in_world.w());
@@ -365,7 +361,7 @@ __global__ void render_partial(float* fb, unsigned int max_x, unsigned int max_y
 __global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // Camera
-        *d_cam = new Camera(vec3::zero(), vec3(0.f, 0.f, -1.f), CameraType::PERSPECTIVE, deg_to_rad(45.f), 2.f);
+        *d_cam = new Camera(vec3::zero(), vec3(0.f, 0.f, -1.f), CameraType::PERSPECTIVE, deg_to_rad<float, true>(45.f), 2.f);
 
         // AreaLight Position
         vec3 quadPoints[4] = {
@@ -584,7 +580,7 @@ __global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gw
         *d_gworld = new GeometryList(d_glist, 8);
 
         d_llist[0] = new AreaLight(quadPoints[0], quadPoints[1], quadPoints[2], quadPoints[3], Color::white(), shadowSamples, 10.f);
-        ((AreaLight*)d_llist[0])->rotate(vec3(1.f, 0.f, 0.f), deg_to_rad(180.f));
+        ((AreaLight*)d_llist[0])->rotate(vec3(1.f, 0.f, 0.f), deg_to_rad<float, true>(180.f));
         *d_lworld = new LightList(d_llist, 1);
     }
 }
@@ -610,22 +606,9 @@ int main()
 {
 #pragma region Start
 
-    cudaDeviceProp props;
-    cudaGetDeviceProperties(&props, 0);
-    fprintf(stdout, "Supports malloc on device: %d\n", props.managedMemory);
+    if (!initCuda()) return EXIT_FAILURE;
 
-    cudaDeviceSetLimit(cudaLimitStackSize, 20480);
-
-    size_t stack_size;
-    cudaDeviceGetLimit(&stack_size, cudaLimitStackSize);
-    fprintf(stdout, "Default stack size: %zu bytes\n", stack_size);
-
-    int maxThreadsPerBlock;
-    cudaDeviceGetAttribute(&maxThreadsPerBlock, cudaDevAttrMaxThreadsPerBlock, 0);
-    fprintf(stdout, "Max threads per block: %d\n", props.maxThreadsPerBlock);
-
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    checkCudaErrors(cudaSetDevice(0));
+    printf("CUDA initialized.\n");
 
 #pragma endregion
 
@@ -639,7 +622,7 @@ int main()
     const unsigned int ty = 19; // Optimized
     const unsigned int aa_iter = 1; // Optimized
     const unsigned int ref_iter = 4; // Optimized
-    const unsigned int gl_iter = 0; // Can also be 4 but its darker
+    const unsigned int gl_iter = 1; // Can also be 4 but its darker
     const unsigned int ind_rays = 75; // I think its good enough
     const unsigned int shadowSamples = 50; // Optimized
     const unsigned int num_pixels = nx * ny;
@@ -891,9 +874,58 @@ int main()
     fprintf(stdout, "\nImage saved as 'file.hdr'. Press Enter to exit...");
     getchar();
 
-    return 0;
+    return EXIT_SUCCESS;
 
 #pragma endregion
+}
+
+void checkCuda(cudaError_t result, char const* const func, const char* const file, int const line) {
+    if (result) {
+        fprintf(stderr, "CUDA error = %d at %s: %d '%s'\n", static_cast<unsigned int>(result), file, line, func);
+        // Make sure we call CUDA Device Reset before exiting
+        cudaDeviceReset();
+        exit(99);
+    }
+}
+
+bool initCuda() {
+    int count;
+
+    checkCudaErrors(cudaGetDeviceCount(&count)); // Get the number of available devices
+    if (count == 0) {
+        fprintf(stderr, "There is no device.\n");
+        return false;
+    }
+
+    int i;
+    for (i = 0; i < count; i++) {
+        cudaDeviceProp props;
+        if (cudaGetDeviceProperties(&props, i) == cudaSuccess) {
+            if (props.major >= 1) {
+                fprintf(stdout, "Supports malloc on device: %s\n", props.managedMemory ? "true" : "false");
+                break;
+            }
+        }
+    }
+
+    if (i == count) {
+        fprintf(stderr, "There is no device supporting CUDA 1.x.\n");
+        return false;
+    }
+    
+    cudaDeviceSetLimit(cudaLimitStackSize, 20480);
+
+    size_t stack_size;
+    cudaDeviceGetLimit(&stack_size, cudaLimitStackSize);
+    fprintf(stdout, "Default stack size: %zu bytes\n", stack_size);
+
+    int maxThreadsPerBlock;
+    cudaDeviceGetAttribute(&maxThreadsPerBlock, cudaDevAttrMaxThreadsPerBlock, i);
+    fprintf(stdout, "Max threads per block: %d\n", maxThreadsPerBlock);
+
+    checkCudaErrors(cudaSetDevice(i));
+    
+    return true;
 }
 
 // Helper function for setting up CUDA random number generator.

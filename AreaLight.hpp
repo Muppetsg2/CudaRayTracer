@@ -70,14 +70,19 @@ namespace craytracer {
 
 			float a = 0.8543985f + (0.4965155f + 0.0145206f * y) * y;
 			float b = 3.4175940f + (4.1616724f + y) * y;
+
+#ifdef __CUDACC__
+			float v = __fdividef(a, b);
+#else
 			float v = a / b;
+#endif
 
 			float theta_sintheta = (x > 0.0f) ? 
 				v : 
 #ifdef __CUDACC__
-				0.5f * rsqrtf(::cuda::std::max(1.0f - x * x, MSTD_EPSILON)) - v;
+				0.5f * rsqrtf(::cuda::std::max(1.0f - x * x, MSTD_CUDA_EPSILON)) - v;
 #else
-				0.5f * Q_rsqrtf(::std::max(1.0f - x * x, MSTD_EPSILON)) - v;
+				0.5f * Q_rsqrtf(::std::max(1.0f - x * x, MSTD_EPSILON<float>)) - v;
 #endif
 
 			return v1.cross(v2) * theta_sintheta;
@@ -208,7 +213,11 @@ namespace craytracer {
 			// construct orthonormal basis around N
 			vec3 T1, T2;
 			T1 = (viewDir - norm * viewDir.dot(norm));
-			if (!epsilon_equal(T1.length_sq(), 0.f, MSTD_EPSILON_SQ)) T1.normalize();
+#ifdef __CUDACC__
+			if (!epsilon_equal(T1.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ)) T1.normalize();
+#else
+			if (!epsilon_equal(T1.length_sq(), 0.f, MSTD_EPSILON_SQ<float>)) T1.normalize();
+#endif
 			T2 = norm.cross(T1);
 
 			// rotate area light in (T1, T2, N) basis
@@ -232,10 +241,17 @@ namespace craytracer {
 				vec3 lightNormal = (points[1] - points[0]).cross(points[3] - points[0]);
 				bool behind = (dir.dot(lightNormal) < 0.0f);
 
-				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[0] : L[0].normalized();
-				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[1] : L[1].normalized();
-				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[2] : L[2].normalized();
-				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[3] : L[3].normalized();
+#ifdef __CUDACC__
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[3] : L[3].normalized();
+#else
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[3] : L[3].normalized();
+#endif
 
 				vec3 vsum = vec3::zero();
 
@@ -245,7 +261,13 @@ namespace craytracer {
 				vsum += _integrateEdgeVec(L[3], L[0]);
 
 				float len = vsum.length();
-				float z = !epsilon_equal(len, 0.f, MSTD_EPSILON) ? vsum.z() / len : 0.f;
+#ifdef __CUDACC__
+				float z = !epsilon_equal(len, 0.f, MSTD_CUDA_EPSILON) ?
+#else
+				float z = !epsilon_equal(len, 0.f, MSTD_EPSILON<float>) ?
+#endif
+					vsum.z() / len :
+					0.f;
 
 				if (behind)
 					z = -z;
@@ -272,11 +294,19 @@ namespace craytracer {
 					return vec3::zero();
 
 				// project onto sphere
-				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[0] : L[0].normalized();
-				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[1] : L[1].normalized();
-				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[2] : L[2].normalized();
-				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[3] : L[3].normalized();
-				L[4] = epsilon_equal(L[4].length_sq(), 0.f, MSTD_EPSILON_SQ) ? L[4] : L[4].normalized();
+#ifdef __CUDACC__
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[3] : L[3].normalized();
+				L[4] = epsilon_equal(L[4].length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? L[4] : L[4].normalized();
+#else
+				L[0] = epsilon_equal(L[0].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[0] : L[0].normalized();
+				L[1] = epsilon_equal(L[1].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[1] : L[1].normalized();
+				L[2] = epsilon_equal(L[2].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[2] : L[2].normalized();
+				L[3] = epsilon_equal(L[3].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[3] : L[3].normalized();
+				L[4] = epsilon_equal(L[4].length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? L[4] : L[4].normalized();
+#endif
 
 				// integrate
 				sum += _integrateEdge(L[0], L[1]);
@@ -357,7 +387,11 @@ namespace craytracer {
 
 			// intersect plane
 			vec3 nor = a.cross(b);
+#ifdef __CUDACC__
+			float t = -__fdividef(p.dot(nor), ray.getDirection().dot(nor));
+#else
 			float t = -p.dot(nor) / ray.getDirection().dot(nor);
+#endif
 			if (t < 0.0f || (ray.getDistance() > 0.0f && t > ray.getDistance())) return { false };
 
 			// intersection point
@@ -390,10 +424,17 @@ namespace craytracer {
 
 			// if edges are parallel, this is a linear equation
 			float u, v;
-			if (epsilon_equal(k2, 0.f, MSTD_EPSILON))
+#ifdef __CUDACC__
+			if (epsilon_equal(k2, 0.f, MSTD_CUDA_EPSILON))
+			{
+				v = -__fdividef(k0, k1);
+				u = __fdividef((kp.x() * ka.y() - kp.y() * ka.x()), k1);
+#else
+			if (epsilon_equal(k2, 0.f, MSTD_EPSILON<float>))
 			{
 				v = -k0 / k1;
 				u = (kp.x() * ka.y() - kp.y() * ka.x()) / k1;
+#endif
 			}
 			else
 			{
@@ -401,17 +442,23 @@ namespace craytracer {
 				float w = k1 * k1 - 4.0f * k0 * k2;
 				if (w < 0.0f) return { false };
 #ifdef __CUDACC__
-				w = 1.0f / rsqrtf(w);
+				w = __fdividef(1.0f, rsqrtf(w));
+
+				float ik2 = 0.5f * __fdividef(1.0f, k2);
 #else
 				w = ::std::sqrtf(w);
-#endif
 
-				float ik2 = 1.0f / (2.0f * k2);
+				float ik2 = 0.5f * 1.0f / k2;
+#endif
 
 				v = (-k1 - w) * ik2;
 				if (v < 0.0f || v > 1.0f) v = (-k1 + w) * ik2;
 
+#ifdef __CUDACC__
+				u = __fdividef((kp.x() - ka.x() * v), (kb.x() + kg.x() * v));
+#else
 				u = (kp.x() - ka.x() * v) / (kb.x() + kg.x() * v);
+#endif
 			}
 
 #ifdef __CUDACC__
@@ -448,7 +495,11 @@ namespace craytracer {
 				vec3 rayDir = lightSample - position;
 				float lightDist = rayDir.length();
 
-				if (!epsilon_equal(lightDist, 0.f, MSTD_EPSILON)) rayDir.normalize();
+#ifdef __CUDACC__
+				if (!epsilon_equal(lightDist, 0.f, MSTD_CUDA_EPSILON)) rayDir.normalize();
+#else
+				if (!epsilon_equal(lightDist, 0.f, MSTD_EPSILON<float>)) rayDir.normalize();
+#endif
 
 				Ray shadowRay = Ray(position + 0.01f * rayDir, rayDir, lightDist);
 
@@ -461,7 +512,7 @@ namespace craytracer {
 			}
 
 #ifdef __CUDACC__
-			visibility = 1.0f - static_cast<float>(shadowed) / static_cast<float>(shadowSamples);
+			visibility = 1.0f - __fdividef(static_cast<float>(shadowed), static_cast<float>(shadowSamples));
 #else
 			visibility = 1.0f - static_cast<float>(shadowed) / static_cast<float>(_shadowSamples);
 #endif
@@ -496,7 +547,11 @@ namespace craytracer {
 		}
 
 		__device__ void rotate(vec3 axis, float radians) {
-			if (epsilon_equal(axis.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
+#ifdef __CUDACC__
+			if (epsilon_equal(axis.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ)) return;
+#else
+			if (epsilon_equal(axis.length_sq(), 0.f, MSTD_EPSILON_SQ<float>)) return;
+#endif
 			vec3 rotAxis = axis.normalized();
 			for (vec3& pt : _points) {
 				pt.rotate(rotAxis, radians);
@@ -549,11 +604,13 @@ namespace craytracer {
 			float roughness = 1.0f - 0.25f * ::std::expf(::std::logf(input.mat->shininess) * 0.2f);
 #endif
 
+#ifdef __CUDACC__
 			float ndotv = saturate<float, true>(input.norm.dot(input.viewDir));
 
-#ifdef __CUDACC__
-			vec2 uv = vec2(roughness, 1.0f / rsqrtf(1.0f - ndotv));
+			vec2 uv = vec2(roughness, __fdividef(1.0f, rsqrtf(1.0f - ndotv)));
 #else
+			float ndotv = saturate<float, false>(input.norm.dot(input.viewDir));
+
 			vec2 uv = vec2(roughness, ::std::sqrtf(1.0f - ndotv));
 #endif
 			uv = uv * LUT_SCALE + LUT_BIAS;

@@ -63,16 +63,21 @@ namespace craytracer {
             float rangeV = maxV - minV;
 
             // Preventing division by zero
-            if (epsilon_equal(rangeU, 0.f, MSTD_EPSILON)) rangeU = 1.0f;
-            if (epsilon_equal(rangeV, 0.f, MSTD_EPSILON)) rangeV = 1.0f;
+#ifdef __CUDACC__
+            if (epsilon_equal(rangeU, 0.f, MSTD_CUDA_EPSILON)) rangeU = 1.0f;
+            if (epsilon_equal(rangeV, 0.f, MSTD_CUDA_EPSILON)) rangeV = 1.0f;
+#else
+            if (epsilon_equal(rangeU, 0.f, MSTD_EPSILON<float>)) rangeU = 1.0f;
+            if (epsilon_equal(rangeV, 0.f, MSTD_EPSILON<float>)) rangeV = 1.0f;
+#endif
 
             // UV normalization to range [0,1]
 #ifdef __CUDACC__
             ::thrust::tuple<vec2, vec2, vec2, vec2> ret = ::thrust::make_tuple(
-                vec2((uv0.x() - minU) / rangeU, (uv0.y() - minV) / rangeV),
-                vec2((uv1.x() - minU) / rangeU, (uv1.y() - minV) / rangeV),
-                vec2((uv2.x() - minU) / rangeU, (uv2.y() - minV) / rangeV),
-                vec2((uv3.x() - minU) / rangeU, (uv3.y() - minV) / rangeV)
+                vec2(__fdividef((uv0.x() - minU), rangeU), __fdividef((uv0.y() - minV), rangeV)),
+                vec2(__fdividef((uv1.x() - minU), rangeU), __fdividef((uv1.y() - minV), rangeV)),
+                vec2(__fdividef((uv2.x() - minU), rangeU), __fdividef((uv2.y() - minV), rangeV)),
+                vec2(__fdividef((uv3.x() - minU), rangeU), __fdividef((uv3.y() - minV), rangeV))
             );
 #else
             ::std::tuple<vec2, vec2, vec2, vec2> ret = ::std::make_tuple(
@@ -204,7 +209,11 @@ namespace craytracer {
 
             // intersect plane
             vec3 nor = a.cross(b);
+#ifdef __CUDACC__
+            float t = -__fdividef(p.dot(nor), ray.getDirection().dot(nor));
+#else
             float t = -p.dot(nor) / ray.getDirection().dot(nor);
+#endif
             if (t < 0.0f || (ray.getDistance() > 0.0f && t > ray.getDistance())) return false;
 
             // intersection point
@@ -233,10 +242,17 @@ namespace craytracer {
 
             // if edges are parallel, this is a linear equation
             float u, v;
-            if (epsilon_equal(k2, 0.f, MSTD_EPSILON))
+#ifdef __CUDACC__
+            if (epsilon_equal(k2, 0.f, MSTD_CUDA_EPSILON))
+            {
+                v = -__fdividef(k0, k1);
+                u = __fdividef((kp.x() * ka.y() - kp.y() * ka.x()), k1);
+#else
+            if (epsilon_equal(k2, 0.f, MSTD_EPSILON<float>))
             {
                 v = -k0 / k1;
                 u = (kp.x() * ka.y() - kp.y() * ka.x()) / k1;
+#endif
             }
             else
             {
@@ -244,17 +260,23 @@ namespace craytracer {
                 float w = k1 * k1 - 4.0f * k0 * k2;
                 if (w < 0.0f) return false;
 #ifdef __CUDACC__
-                w = 1.0f / rsqrtf(w);
+                w = __fdividef(1.0f, rsqrtf(w));
+
+                float ik2 = __fdividef(1.0f, (2.0f * k2));
 #else
                 w = ::std::sqrtf(w);
-#endif
 
                 float ik2 = 1.0f / (2.0f * k2);
+#endif
 
                 v = (-k1 - w) * ik2;
                 if (v < 0.0f || v > 1.0f) v = (-k1 + w) * ik2;
 
+#ifdef __CUDACC__
+                u = __fdividef((kp.x() - ka.x() * v), (kb.x() + kg.x() * v));
+#else
                 u = (kp.x() - ka.x() * v) / (kb.x() + kg.x() * v);
+#endif
             }
 
 #ifdef __CUDACC__

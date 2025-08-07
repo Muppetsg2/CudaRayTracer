@@ -27,7 +27,11 @@ namespace craytracer {
 			_pos = position;
 			_type = type;
 
-			_front = epsilon_equal(front.length_sq(), 0.f, MSTD_EPSILON_SQ) ? vec3(0.f, 0.f, -1.f) : front.normalized();
+#ifdef __CUDACC__
+			_front = epsilon_equal(front.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ) ? vec3(0.f, 0.f, -1.f) : front.normalized();
+#else
+			_front = epsilon_equal(front.length_sq(), 0.f, MSTD_EPSILON_SQ<float>) ? vec3(0.f, 0.f, -1.f) : front.normalized();
+#endif
 
 			setFov(fovRad);
 			setOrthographicScale(orthoScale);
@@ -44,25 +48,29 @@ namespace craytracer {
 		__device__ void setFov(float radians)
 		{
 #ifdef __CUDACC__
-			_fov = ::cuda::std::max(radians, MSTD_EPSILON);
+			_fov = ::cuda::std::max(radians, MSTD_CUDA_EPSILON);
 #else
-	        _fov = ::std::max(radians, MSTD_EPSILON);
+	        _fov = ::std::max(radians, MSTD_EPSILON<float>);
 #endif
 		}
 
 		__device__ void setOrthographicScale(float value)
 		{
 #ifdef __CUDACC__
-			_orthoScale = ::cuda::std::max(value, MSTD_EPSILON);
+			_orthoScale = ::cuda::std::max(value, MSTD_CUDA_EPSILON);
 #else
-			_orthoScale = ::std::max(value, MSTD_EPSILON);
+			_orthoScale = ::std::max(value, MSTD_EPSILON<float>);
 #endif
 		}
 
 		__device__ void setPosition(vec3 value) { _pos = value; }
 
 		__device__ void setFront(vec3 value) {
-			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ)) return;
+#ifdef __CUDACC__
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_CUDA_EPSILON_SQ)) return;
+#else
+			if (epsilon_equal(value.length_sq(), 0.f, MSTD_EPSILON_SQ<float>)) return;
+#endif
 			_front = value.normalized();
 		}
 
@@ -90,11 +98,12 @@ namespace craytracer {
 			switch (_type) {
 #endif
 				case CameraType::ORTHOGRAPHIC: {
-					float aspect = height / width;
 #ifdef __CUDACC__
+					float aspect = __fdividef(height, width);
 					float orthoWidth = orthoScale * (aspect > 1.f ? aspect : 1.f);
 					float orthoHeight = orthoScale * (aspect > 1.f ? aspect : 1.f);
 #else
+					float aspect = height / width;
 					float orthoWidth = _orthoScale * (aspect > 1.f ? aspect : 1.f);
 					float orthoHeight = _orthoScale * (aspect > 1.f ? aspect : 1.f);
 #endif
@@ -112,10 +121,12 @@ namespace craytracer {
 					rayOrigin = x * rightDir + y * upDir;
 #ifdef __CUDACC__
 					rayOrigin += pos;
-					vec3 camPos = pos - (((width * 0.5f) / ::cuda::std::tanf(fov * 0.5f)) * front);
+					float one_over_tan = __fdividef(1.0f, __tanf(fov * 0.5f));
+					vec3 camPos = pos - ((width * 0.5f * one_over_tan) * front);
 #else
 					rayOrigin += _pos;
-					vec3 camPos = _pos - (((width * 0.5f) / ::std::tanf(_fov * 0.5f)) * _front);
+					float one_over_tan = 1.0f / ::std::tanf(_fov * 0.5f);
+					vec3 camPos = _pos - (((width * 0.5f) * one_over_tan) * _front);
 #endif
 					return Ray(rayOrigin, rayOrigin - camPos);
 				}

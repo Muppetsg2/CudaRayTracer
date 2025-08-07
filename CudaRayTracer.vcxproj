@@ -121,8 +121,6 @@
     <ClInclude Include="quat.hpp" />
     <ClInclude Include="Ray.hpp" />
     <ClInclude Include="Sphere.hpp" />
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_image_write.h" />
     <ClInclude Include="Texture.hpp" />
     <ClInclude Include="vec.hpp" />
     <ClInclude Include="Vertex.hpp" />

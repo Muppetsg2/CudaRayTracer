@@ -131,7 +131,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec(const Ts&... values) {
 			_set_values<Ts...>(MSTD_STD_NAMESPACE::index_sequence_for<Ts...>(), values...);
-			_fill_values_from(sizeof...(Ts), 0);
+			_fill_values_from(sizeof...(Ts), T(0));
 		}
 
 		// vecN(vec, z, ...)
@@ -147,7 +147,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR vec(const vec<ON, OT>& other, const Ts&... values) {
 			_copy_values_from(other);
 			_set_values<Ts...>(make_index_sequence_for_from<ON, Ts...>(), values...);
-			_fill_values_from(sizeof...(Ts) + ON, 0);
+			_fill_values_from(sizeof...(Ts) + ON, T(0));
 		}
 
 		// vecN({ 1, 2 })
@@ -158,7 +158,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec(const OT(&values)[TN]) {
 			_copy_values_from(values);
-			_fill_values_from(TN, 0);
+			_fill_values_from(TN, T(0));
 		}
 
 		// vecN(&table)
@@ -169,7 +169,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec(const OT* values, const size_t& size) {
 			_copy_values_from(values, size);
-			_fill_values_from(size, 0);
+			_fill_values_from(size, T(0));
 		}
 
 		// vecN(vecON)
@@ -180,7 +180,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec(const vec<ON, OT>& other) {
 			_copy_values_from(other);
-			_fill_values_from(ON, 0);
+			_fill_values_from(ON, T(0));
 		}
 
 #pragma region VECTOR_3_CONSTRUCTORS
@@ -208,7 +208,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec<N, T>& operator=(const OT(&values)[TN]) {
 			_copy_values_from(values);
-			_fill_values_from(TN, 0);
+			_fill_values_from(TN, T(0));
 			return *this;
 		}
 #if _HAS_CXX20
@@ -218,7 +218,7 @@ namespace MSTD_NAMESPACE {
 #endif
 		MSTD_CUDA_EXPR vec<N, T>& operator=(const vec<ON, OT>& other) {
 			_copy_values_from(other);
-			_fill_values_from(ON, 0);
+			_fill_values_from(ON, T(0));
 			return *this;
 		}
 #pragma endregion // ASSIGN
@@ -389,7 +389,12 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR T length() const {
 #ifdef MSTD_USE_CUDA
-			return static_cast<T>(T(1) / rsqrt(length_sq()));
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				return __fdividef(1.0f, rsqrtf(length_sq()));
+			}
+			else {
+				return static_cast<T>(1.0 / rsqrt(length_sq()));
+			}
 #else
 			return static_cast<T>(MSTD_STD_NAMESPACE::sqrt(length_sq()));
 #endif
@@ -433,14 +438,19 @@ namespace MSTD_NAMESPACE {
 			}
 
 #ifdef MSTD_USE_CUDA
-			return MSTD_STD_NAMESPACE::acos(dot(other) * rsqrt(this_len * other_len));
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				return acosf(dot(other) * rsqrtf(this_len * other_len));
+			}
+			else {
+				return MSTD_STD_NAMESPACE::acos(dot(other) * rsqrt(this_len * other_len));
+			}
 #else
 			return MSTD_STD_NAMESPACE::acos(dot(other) / MSTD_STD_NAMESPACE::sqrt(this_len * other_len));
 #endif
 		}
 
 		MSTD_CUDA_EXPR vec<N, T>& reflect(const vec<N, T>& normal) noexcept {
-			*this -= 2.0f * this->dot(normal) * normal;
+			*this -= T(2) * this->dot(normal) * normal;
 			return *this;
 		}
 
@@ -455,13 +465,19 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR vec<N, T> refracted(const vec<N, T>& normal, const T& eta) const {
-			float cos_theta = MSTD_STD_NAMESPACE::min((-(*this)).dot(normal), 1.0f);
+			float cos_theta = MSTD_STD_NAMESPACE::min((-(*this)).dot(normal), T(1));
 			vec<N, T> r_out_perp = eta * (*this + cos_theta * normal);
 			float length_sq = r_out_perp.length_sq();
 #ifdef MSTD_USE_CUDA
-			vec<N, T> r_out_parallel = -normal / rsqrt(MSTD_STD_NAMESPACE::abs(1.0f - length_sq));
+			vec<N, T> r_out_parallel;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				r_out_parallel = -normal / rsqrtf(MSTD_STD_NAMESPACE::abs(1.0f - length_sq));
+			}
+			else {
+				r_out_parallel = -normal / rsqrt(MSTD_STD_NAMESPACE::abs(T(1) - length_sq));
+			}
 #else
-			vec<N, T> r_out_parallel = -MSTD_STD_NAMESPACE::sqrt(MSTD_STD_NAMESPACE::abs(1.0f - length_sq)) * normal;
+			const vec<N, T> r_out_parallel = -MSTD_STD_NAMESPACE::sqrt(MSTD_STD_NAMESPACE::abs(T(1) - length_sq)) * normal;
 #endif
 			return r_out_perp + r_out_parallel;
 		}
@@ -495,9 +511,31 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR vec<N, T>& mod(const T& y) {
-			for (size_t i = 0; i != N; ++i) {
-				_values[i] -= y * MSTD_STD_NAMESPACE::floor(_values[i] / y);
+#ifdef MSTD_USE_CUDA
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				float one_over_y = 1.0f / y;
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] -= y * floorf(_values[i] * one_over_y);
+				}
 			}
+			else {
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] -= y * MSTD_STD_NAMESPACE::floor(_values[i] / y);
+				}
+			}
+#else
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				float one_over_y = 1.0f / y;
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] -= y * MSTD_STD_NAMESPACE::floorf(_values[i] * one_over_y);
+				}
+			}
+			else {
+				for (size_t i = 0; i != N; ++i) {
+					_values[i] -= y * MSTD_STD_NAMESPACE::floor(_values[i] / y);
+				}
+			}
+#endif
 			return *this;
 		}
 
@@ -508,7 +546,16 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR vec<N, T>& mod(const vec<N, T>& other) {
 			for (size_t i = 0; i != N; ++i) {
+#ifdef MSTD_USE_CUDA
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					_values[i] -= other[i] * floorf(__fdividef(_values[i], other[i]));
+				}
+				else {
+					_values[i] -= other[i] * MSTD_STD_NAMESPACE::floor(_values[i] / other[i]);
+				}
+#else
 				_values[i] -= other[i] * MSTD_STD_NAMESPACE::floor(_values[i] / other[i]);
+#endif
 			}
 			return *this;
 		}
@@ -645,7 +692,16 @@ namespace MSTD_NAMESPACE {
 			else {
 				T one_over_other[N];
 				for (size_t i = 0; i != N; ++i) {
-					one_over_other[i] = T(1) / other[i];
+#ifdef MSTD_USE_CUDA
+					if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+						one_over_other[i] = __fdividef(1.0f, other[i]);
+					}
+					else {
+						one_over_other[i] = 1.0 / other[i];
+					}
+#else
+					one_over_other[i] = 1.0 / other[i];
+#endif
 				}
 				for (size_t i = 0; i != N; ++i) {
 					_values[i] *= one_over_other[i];
@@ -654,26 +710,26 @@ namespace MSTD_NAMESPACE {
 			return *this;
 		}
 
-		MSTD_CUDA_EXPR vec<N, T>& operator+=(const T& other) {
+		MSTD_CUDA_EXPR vec<N, T>& operator+=(const T& y) {
 			for (size_t i = 0; i != N; ++i) {
-				_values[i] += other;
+				_values[i] += y;
 			}
 			return *this;
 		}
-		MSTD_CUDA_EXPR vec<N, T>& operator-=(const T& other) {
+		MSTD_CUDA_EXPR vec<N, T>& operator-=(const T& y) {
 			for (size_t i = 0; i != N; ++i) {
-				_values[i] -= other;
+				_values[i] -= y;
 			}
 			return *this;
 		}
-		MSTD_CUDA_EXPR vec<N, T>& operator*=(const T& other) {
+		MSTD_CUDA_EXPR vec<N, T>& operator*=(const T& y) {
 			for (size_t i = 0; i != N; ++i) {
-				_values[i] *= other;
+				_values[i] *= y;
 			}
 			return *this;
 		}
-		MSTD_CUDA_EXPR vec<N, T>& operator/=(const T& other) {
-			if (other == T(0)) {
+		MSTD_CUDA_EXPR vec<N, T>& operator/=(const T& y) {
+			if (y == T(0)) {
 #ifdef MSTD_USE_CUDA
 				return *this;
 #else
@@ -682,13 +738,23 @@ namespace MSTD_NAMESPACE {
 			}
 			if constexpr (!MSTD_STD_NAMESPACE::is_same_v<T, float> && !MSTD_STD_NAMESPACE::is_same_v<T, double>) {
 				for (size_t i = 0; i != N; ++i) {
-					_values[i] /= other;
+					_values[i] /= y;
 				}
 			}
 			else {
-				T one_over_other = T(1) / other;
+#ifdef MSTD_USE_CUDA
+				T one_over_y;
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					one_over_y = 1.0f / y;
+				}
+				else {
+					one_over_y = 1.0 / y;
+				}
+#else
+				T one_over_y = 1.0 / y;
+#endif
 				for (size_t i = 0; i != N; ++i) {
-					_values[i] *= one_over_other;
+					_values[i] *= one_over_y;
 				}
 			}
 			return *this;
@@ -715,27 +781,27 @@ namespace MSTD_NAMESPACE {
 			return res;
 		}
 
-		MSTD_CUDA_EXPR vec<N, T> operator+(const T& other) const {
+		MSTD_CUDA_EXPR vec<N, T> operator+(const T& y) const {
 			vec<N, T> res = *this;
-			res += other;
+			res += y;
 			return res;
 		}
-		MSTD_CUDA_EXPR vec<N, T> operator-(const T& other) const {
+		MSTD_CUDA_EXPR vec<N, T> operator-(const T& y) const {
 			vec<N, T> res = *this;
-			res -= other;
+			res -= y;
 			return res;
 		}
-		MSTD_CUDA_EXPR vec<N, T> operator*(const T& other) const {
+		MSTD_CUDA_EXPR vec<N, T> operator*(const T& y) const {
 			vec<N, T> res = *this;
-			res *= other;
+			res *= y;
 			return res;
 		}
-		MSTD_CUDA_EXPR MSTD_FRIEND vec<N, T> operator*(const T& other, const vec<N, T>& vector) {
-			return vector * other;
+		MSTD_CUDA_EXPR MSTD_FRIEND vec<N, T> operator*(const T& y, const vec<N, T>& vector) {
+			return vector * y;
 		}
-		MSTD_CUDA_EXPR vec<N, T> operator/(const T& other) const {
+		MSTD_CUDA_EXPR vec<N, T> operator/(const T& y) const {
 			vec<N, T> res = *this;
-			res /= other;
+			res /= y;
 			return res;
 		}
 

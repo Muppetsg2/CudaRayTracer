@@ -41,30 +41,33 @@ namespace craytracer {
 					bool front_face = r.getDirection().dot(hit.hitNormal) < 0.f;
 
 					vec3 norm = front_face ? hit.hitNormal : -hit.hitNormal;
+#ifdef __CUDACC__
+					float ratio = ldg_float(&hit.hitMat->refractIndex) / AIR_INDEX;
+					if (front_face) ratio = __fdividef(1.0f, ratio);
+					vec3 rayDirection = r.getDirection().normalized();
 
+					float cos_theta = ::cuda::std::fminf(dot(-rayDirection, norm), 1.0f);
+					float sin_theta = __fdividef(1.0f, rsqrtf(1.0f - cos_theta * cos_theta));
+
+					bool cannot_refract = ratio * sin_theta > 1.0f || reflectance<true>(cos_theta, ratio) > 1.0f;
+#else
 					float ratio = hit.hitMat->refractIndex / AIR_INDEX;
 					if (front_face) ratio = 1.0f / ratio;
 					vec3 rayDirection = r.getDirection().normalized();
 
-#ifdef __CUDACC__
-					float cos_theta = ::cuda::std::fminf(dot(-rayDirection, norm), 1.0f);
-					float sin_theta = 1.0f / rsqrtf(1.0f - cos_theta * cos_theta);
-#else
 					float cos_theta = ::std::fminf(dot(-rayDirection, norm), 1.0f);
 					float sin_theta = ::std::sqrtf(1.0f - cos_theta * cos_theta);
-#endif
 
 					bool cannot_refract = ratio * sin_theta > 1.0f || reflectance(cos_theta, ratio) > 1.0f;
+#endif
 
-					if (cannot_refract) {
+					if (cannot_refract) 
 						return true;
-					}
-					else {
-						vec3 dir = refract(rayDirection, norm, ratio);
-						Ray refracted = Ray(hit.hitPoint + 0.01f * dir, dir);
-						if (!front_face) return !_hittedLight(refracted);
-						r = refracted;
-					}
+
+					vec3 dir = refract(rayDirection, norm, ratio);
+					Ray refracted = Ray(hit.hitPoint + 0.01f * dir, dir);
+					if (!front_face) return !_hittedLight(refracted);
+					r = refracted;
 				}
 
 				++i;
@@ -85,7 +88,11 @@ namespace craytracer {
 #endif
 			float lightDist = rayDir.length();
 
-			if (!epsilon_equal(lightDist, 0.f, MSTD_EPSILON)) rayDir.normalize();
+#ifdef __CUDACC__
+			if (!epsilon_equal(lightDist, 0.f, MSTD_CUDA_EPSILON)) rayDir.normalize();
+#else
+			if (!epsilon_equal(lightDist, 0.f, MSTD_EPSILON<float>)) rayDir.normalize();
+#endif
 
 			Ray ray = Ray(position + 0.01f * rayDir, rayDir, lightDist);
 			bool hitObject = _isCovered(ray, objects, 10u);
@@ -119,13 +126,15 @@ namespace craytracer {
 			if (_calculateVisibility(input.fragPos, objects, visibility, rand_state)) return vec4(ambient, 1.f);
 
 			vec3 lightDir = pos - input.fragPos;
+
+			if (!epsilon_equal(lightDir.length_sq(), 0.0f, MSTD_CUDA_EPSILON_SQ)) lightDir.normalize();
 #else
 			if (_calculateVisibility(input.fragPos, objects, visibility)) return vec4(ambient, 1.f);
 
 			vec3 lightDir = _pos - input.fragPos;
-#endif
 
-			if (!epsilon_equal(lightDir.length_sq(), 0.0f, MSTD_EPSILON_SQ)) lightDir.normalize();
+			if (!epsilon_equal(lightDir.length_sq(), 0.0f, MSTD_EPSILON_SQ<float>)) lightDir.normalize();
+#endif
 
 #ifdef __CUDACC__
 			// diffuse

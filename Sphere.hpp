@@ -51,10 +51,14 @@ namespace craytracer {
 
 			float discr = b * b - 4.f * a * c;
 			if (discr < 0.f) return false;
+#ifdef __CUDACC__
+			else if (epsilon_equal(discr, 0.f, MSTD_CUDA_EPSILON)) t0 = t1 = -0.5f * __fdividef(b, a);
+#else
 			else if (epsilon_equal(discr, 0.f, MSTD_EPSILON)) t0 = t1 = -0.5f * b / a;
+#endif
 			else {
 #ifdef __CUDACC__
-				float discr_sq = 1.0f / rsqrtf(discr);
+				float discr_sq = __fdividef(1.0f, rsqrtf(discr));
 #else
 				float discr_sq = ::std::sqrtf(discr);
 #endif
@@ -62,8 +66,13 @@ namespace craytracer {
 					-0.5f * (b + discr_sq) :
 					-0.5f * (b - discr_sq);
 
+#ifdef __CUDACC__
+				t0 = __fdividef(q, a);
+				t1 = __fdividef(c, q);
+#else
 				t0 = q / a;
 				t1 = c / q;
+#endif
 			}
 			if (t0 > t1) 
 #ifdef __CUDACC__
@@ -92,8 +101,8 @@ namespace craytracer {
 #endif
 			hit.hitUV = vec2(
 #ifdef __CUDACC__
-				0.5f + ::cuda::std::atan2(hit.hitNormal.z(), hit.hitNormal.x()) / (2.f * M_PI),
-				0.5f - ::cuda::std::asin(hit.hitNormal.y()) / M_PI
+				0.5f + atan2f(hit.hitNormal.z(), hit.hitNormal.x()) * MSTD_CUDA_1_PI_2,
+				0.5f - asinf(hit.hitNormal.y()) * MSTD_CUDA_1_PI
 #else
 				0.5f + ::std::atan2(hit.hitNormal.z(), hit.hitNormal.x()) / (2.f * M_PI),
 				0.5f - ::std::asin(hit.hitNormal.y()) / M_PI

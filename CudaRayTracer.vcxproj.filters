@@ -68,12 +68,6 @@
       <Filter>Light</Filter>
     </ClInclude>
     <ClInclude Include="ldg_helpers.hpp" />
-    <ClInclude Include="stb_image.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
-    <ClInclude Include="stb_image_write.h">
-      <Filter>Libraries</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Geometry">

@@ -372,7 +372,7 @@ namespace MSTD_NAMESPACE {
 	public:
 #pragma region CONSTRUCTORS
 		MSTD_CUDA_EXPR mat() {
-			_fill_values(0);
+			_fill_values(T(0));
 		}
 
 #if _HAS_CXX20
@@ -575,8 +575,22 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == 3 && _C == C)>::type>
 		MSTD_CUDA_EXPR static mat<C, R, T> screen(const T& left, const T& right, const T& bottom, const T& top, const T& width, const T& height) {
 #endif
-			const T& inv_bt = T(1) / (bottom - top);
-			const T& inv_rl = T(1) / (right - left);
+
+#ifdef MSTD_USE_CUDA
+			T inv_bt;
+			T inv_rl;
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				inv_bt = __fdividef(1.0f, (bottom - top));
+				inv_rl = __fdividef(1.0f, (right - left));
+			}
+			else {
+				inv_bt = (T)(1.0 / (bottom - top));
+				inv_rl = (T)(1.0 / (right - left));
+			}
+#else
+			const T& inv_bt = (T)(1.0 / (bottom - top));
+			const T& inv_rl = (T)(1.0 / (right - left));
+#endif
 
 			mat<C, R, T> res = mat<C, R, T>::zero();
 			res[0][0] = width * inv_rl;
@@ -721,17 +735,17 @@ namespace MSTD_NAMESPACE {
 			if (!norm_axis.is_zero()) norm_axis.normalize();
 
 			mat<C, R, T> res = mat<C, R, T>::identity();
-			res[0][0] = (norm_axis[0] * norm_axis[0]) + cosA * (1 - (norm_axis[0] * norm_axis[0]));
+			res[0][0] = (norm_axis[0] * norm_axis[0]) + cosA * (T(1) - (norm_axis[0] * norm_axis[0]));
 			res[0][1] = (norm_axis[0] * norm_axis[1]) * oneMinCosA - sinA * norm_axis[2];
 			res[0][2] = (norm_axis[0] * norm_axis[2]) * oneMinCosA - sinA * norm_axis[1];
 
 			res[1][0] = (norm_axis[0] * norm_axis[1]) * oneMinCosA + sinA * norm_axis[2];
-			res[1][1] = (norm_axis[1] * norm_axis[1]) + cosA * (1 - (norm_axis[1] * norm_axis[1]));
+			res[1][1] = (norm_axis[1] * norm_axis[1]) + cosA * (T(1) - (norm_axis[1] * norm_axis[1]));
 			res[1][2] = (norm_axis[1] * norm_axis[2]) * oneMinCosA - sinA * norm_axis[0];
 
 			res[2][0] = (norm_axis[0] * norm_axis[2]) * oneMinCosA - sinA * norm_axis[1];
 			res[2][1] = (norm_axis[1] * norm_axis[2]) * oneMinCosA + sinA * norm_axis[0];
-			res[2][2] = (norm_axis[2] * norm_axis[2]) + cosA * (1 - (norm_axis[2] * norm_axis[2]));
+			res[2][2] = (norm_axis[2] * norm_axis[2]) + cosA * (T(1) - (norm_axis[2] * norm_axis[2]));
 
 			return res;
 		}
@@ -755,17 +769,17 @@ namespace MSTD_NAMESPACE {
 			const T& yz = quaternion.v[1] * quaternion.v[2];
 
 			mat<C, R, T> res = mat<C, R, T>::identity();
-			res[0][0] = 1.f - 2.f * (y2 + z2);
-			res[1][0] = 2.f * (xy - sz);
-			res[2][0] = 2.f * (xz + sy);
+			res[0][0] = T(1) - T(2) * (y2 + z2);
+			res[1][0] = T(2) * (xy - sz);
+			res[2][0] = T(2) * (xz + sy);
 
-			res[0][1] = 2.f * (xy + sz);
-			res[1][1] = 1.f - 2.f * (x2 + z2);
-			res[2][1] = 2.f * (yz - sx);
+			res[0][1] = T(2) * (xy + sz);
+			res[1][1] = T(1) - T(2) * (x2 + z2);
+			res[2][1] = T(2) * (yz - sx);
 
-			res[0][2] = 2.f * (xz - sy);
-			res[1][2] = 2.f * (yz + sx);
-			res[2][2] = 1.f - 2.f * (x2 + y2);
+			res[0][2] = T(2) * (xz - sy);
+			res[1][2] = T(2) * (yz + sx);
+			res[2][2] = T(1) - T(2) * (x2 + y2);
 			return res;
 		}
 
@@ -801,9 +815,26 @@ namespace MSTD_NAMESPACE {
 			const T& y_dir = top > bottom ? T(1) : T(-1);
 			const T& z_dir = -(x_dir * y_dir);
 
-			const T& inv_rl = 1.f / (right - left);
-			const T& inv_tb = 1.f / (top - bottom);
-			const T& inv_fn = 1.f / (abs_far - abs_near);
+#ifdef MSTD_USE_CUDA
+			T inv_rl;
+			T inv_tb;
+			T inv_fn;
+
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				inv_rl = __fdividef(1.0f, (right - left));
+				inv_tb = __fdividef(1.0f, (top - bottom));
+				inv_fn = __fdividef(1.0f, (abs_far - abs_near));
+			}
+			else {
+				inv_rl = (T)(1.0 / (right - left));
+				inv_tb = (T)(1.0 / (top - bottom));
+				inv_fn = (T)(1.0 / (abs_far - abs_near));
+			}
+#else
+			const T& inv_rl = (T)(1.0 / (right - left));
+			const T& inv_tb = (T)(1.0 / (top - bottom));
+			const T& inv_fn = (T)(1.0 / (abs_far - abs_near));
+#endif
 
 			mat<C, R, T> res;
 			res[0][0] = (res_right - res_left) * abs_near * inv_rl;
@@ -851,12 +882,34 @@ namespace MSTD_NAMESPACE {
 					throw MSTD_STD_NAMESPACE::runtime_error("aspect was zero");
 #endif
 
+#ifdef MSTD_USE_CUDA
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					right = __tanf(fov * 0.5f) * abs_near;
+					top = __fdividef(right, aspect);
+				}
+				else {
+					right = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5) * abs_near;
+					top = right / aspect;
+				}
+#else
 				right = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5) * abs_near;
 				top = right / aspect;
+#endif
 			}
 			else {
-				top = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5) * abs_near;
+#ifdef MSTD_USE_CUDA
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					top = __tanf(fov * 0.5f) * abs_near;
+					right = top * aspect;
+				}
+				else {
+					top = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5f) * abs_near;
+					right = top * aspect;
+				}
+#else
+				top = (T)MSTD_STD_NAMESPACE::tan(fov * 0.5f) * abs_near;
 				right = top * aspect;
+#endif
 			}
 
 			return mat<C, R, T>::symetric_frustrum((right_pos_x ? right : -right), (top_pos_y ? top : -top), abs_near, abs_far,
@@ -895,9 +948,26 @@ namespace MSTD_NAMESPACE {
 			const T& y_dir = top > bottom ? T(1) : T(-1);
 			const T& z_dir = -(x_dir * y_dir);
 
-			const T& inv_rl = 1.0 / (right - left);
-			const T& inv_tb = 1.0 / (top - bottom);
-			const T& inv_fn = 1.0 / (abs_far - abs_near);
+#ifdef MSTD_USE_CUDA
+			T inv_rl;
+			T inv_tb;
+			T inv_fn;
+
+			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+				inv_rl = __fdividef(1.0f, (right - left));
+				inv_tb = __fdividef(1.0f, (top - bottom));
+				inv_fn = __fdividef(1.0f, (abs_far - abs_near));
+			}
+			else {
+				inv_rl = (T)(1.0 / (right - left));
+				inv_tb = (T)(1.0 / (top - bottom));
+				inv_fn = (T)(1.0 / (abs_far - abs_near));
+			}
+#else
+			const T& inv_rl = (T)(1.0 / (right - left));
+			const T& inv_tb = (T)(1.0 / (top - bottom));
+			const T& inv_fn = (T)(1.0 / (abs_far - abs_near));
+#endif
 
 			mat<C, R, T> res;
 			res[0][0] = (res_right - res_left) * inv_rl;
@@ -906,7 +976,7 @@ namespace MSTD_NAMESPACE {
 			res[3][1] = (res_bottom * top - res_top * bottom) * inv_tb;
 			res[2][2] = (res_far - res_near) * z_dir * inv_fn;
 			res[3][2] = (res_near * abs_far - res_far * abs_near) * inv_fn;
-			res[3][3] = 1;
+			res[3][3] = T(1);
 			return res;
 		}
 
@@ -993,7 +1063,7 @@ namespace MSTD_NAMESPACE {
 		template<size_t _C = C, typename = typename MSTD_STD_NAMESPACE::enable_if<(_C == R && _C == C)>::type>
 		MSTD_CUDA_EXPR bool is_identity() const {
 #endif
-			return is_identity_filled_with(1);
+			return is_identity_filled_with(T(1));
 		}
 
 #if _HAS_CXX20
@@ -1240,20 +1310,38 @@ namespace MSTD_NAMESPACE {
 					throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 
+#ifdef MSTD_USE_CUDA
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					return mat<C, R, T>(__fdividef(1.0f, _values[0][0]));
+				}
+				else {
+					return mat<C, R, T>(1.0 / _values[0][0]);
+				}
+#else
 				return mat<C, R, T>(1.0 / _values[0][0]);
+#endif
 			}
 			else {
 				// calculate det
 				T det = determinant();
 
-				if (det == T(0))
 #ifdef MSTD_USE_CUDA
+				if (det == T(0))
 					return mat<C, R, T>(_values);
+
+				T invD;
+				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+					invD = __fdividef(1.0f, det);
+				}
+				else {
+					invD = (T)(1.0 / det);
+				}
 #else
+				if (det == T(0))
 					throw MSTD_STD_NAMESPACE::runtime_error("determinant was zero");
-#endif
 
 				T invD = (T)(1.0 / det);
+#endif
 
 				mat<C, R, T> res;
 				if constexpr (R == 2) {
@@ -1292,7 +1380,11 @@ namespace MSTD_NAMESPACE {
 							// jeœli sub_det != 0
 							if (sub_det != T(0)) {
 								// ustawiamy wartoœæ elementu x, y
-								res[x][y] = (((x + y) % 2 == 0) ? 1 : -1) * sub_det * invD;
+#ifdef MSTD_USE_CUDA
+								res[x][y] = (!((x + y) & 1) ? T(1) : T(-1)) * sub_det * invD;
+#else
+								res[x][y] = (!((x + y) % 2) ? T(1) : T(-1)) * sub_det * invD;
+#endif
 							}
 						}
 					}
@@ -1434,15 +1526,15 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR mat<C, R, T> operator-() const {
-			return *this * -1;
+			return *this * T(-1);
 		}
 
 		MSTD_CUDA_EXPR mat<C, R, T>& operator++() {
-			return *this += 1;
+			return *this += T(1);
 		}
 
 		MSTD_CUDA_EXPR mat<C, R, T>& operator--() {
-			return *this -= 1;
+			return *this -= T(1);
 		}
 
 		template<size_t OC, size_t OR>
