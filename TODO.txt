@@ -1,0 +1,3 @@
+- dodać licencję do każdego pliku oraz informacje o autorach
+
+- dodac zdjecie do readme

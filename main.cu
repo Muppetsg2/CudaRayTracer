@@ -622,9 +622,14 @@ int main()
     const unsigned int ty = 19; // Optimized
     const unsigned int aa_iter = 1; // Optimized
     const unsigned int ref_iter = 4; // Optimized
-    const unsigned int gl_iter = 1; // Can also be 4 but its darker
+    const unsigned int gl_iter = 2; // For Performance 2, for quality 4
     const unsigned int ind_rays = 75; // I think its good enough
     const unsigned int shadowSamples = 50; // Optimized
+
+#pragma endregion
+
+#pragma region CalculatedParameters
+
     const unsigned int num_pixels = nx * ny;
     const size_t fb_size = 4 * num_pixels * sizeof(float);
 

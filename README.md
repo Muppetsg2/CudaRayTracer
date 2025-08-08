@@ -1,107 +1,119 @@
 # CudaRayTracer
 
-**CudaRayTracer** to projekt stworzony podczas studiów we współpracy dwóch autorów, mający na celu implementację ray tracera działającego na GPU z wykorzystaniem **CUDA**. Wspiera zaawansowane techniki renderingu oraz adaptacyjny antyaliasing, a całość została osadzona w nowoczesnym środowisku z użyciem C++20.
+**CudaRayTracer** is a project that ports a custom Ray Tracer implementation, originally developed during university studies, to run on the GPU using **CUDA**.  
+The main goal was to explore GPU-based rendering techniques and gain hands-on experience with CUDA programming.
 
-## ✨ Funkcje
+## ✨ Features
 
-- **Adaptacyjny Antyaliasing**
-  - Piksele dzielone są na 4 części (boxy).
-  - Każdy box może zostać podzielony rekurencyjnie (maks. 4 poziomy zagłębienia – ograniczenie CUDA).
-  - Jeśli wszystkie 4 rogi boxa mają ten sam kolor – dalszy podział jest przerywany (early termination).
+- **Adaptive Antialiasing**
+  - Pixels are split into 4 parts (*boxes*).
+  - Each box can be subdivided recursively (up to 4 levels – CUDA limitation).
+  - If all 4 corners of a box have the same color, subdivision stops (*early termination*).
 
 - **Global Illumination**
-  - Realistyczne oświetlenie z odbiciami światła od innych obiektów.
+  - Realistic lighting with reflections from other objects.
 
-- **Area Light z wykorzystaniem LTC (Linearly Transformed Cosines)**
-  - Dokładne i efektywne światło powierzchniowe.
+- **Area Light with LTC (Linearly Transformed Cosines)**
+  - Accurate and efficient surface light representation.
 
-- **Materiały z obsługą koloru**
-  - **Diffuse** – rozpraszający światło.
-  - **Reflective** – odbijający światło (lustro).
-  - **Refractive** – załamujący światło (szkło).
-  - Każdy materiał może mieć własny kolor.
+- **Colored Materials**
+  - **Diffuse** – scatters light.
+  - **Reflective** – reflects light (mirror-like).
+  - **Refractive** – bends light (e.g., glass).
+  - Each material can have its own color.
 
-- **Scena**
-  - Domyślna scena to **Cornell Box** z dwiema sferami:
-    - Jedna **refrakcyjna**.
-    - Druga **refleksyjna**.
-  - Scena definiowana **bezpośrednio w kodzie źródłowym**.
+- **Scene**
+  - Default scene is a **Cornell Box** with two spheres:
+    - One **refractive**.
+    - One **reflective**.
+  - Scene is defined **directly in the source code**.
 
-- **Zapis do pliku**
-  - Renderowany obraz zapisywany jest jako `file.hdr`.
+- **File Output**
+  - Rendered image is saved in `.hdr` format as `file.hdr`.
 
-## 🧰 Wykorzystane biblioteki
+## 🧰 Libraries Used
 
-- [**SFML**](https://www.sfml-dev.org/) – obsługa okna i wyświetlania.
-- [**stb_image_write**](https://github.com/nothings/stb) – zapis obrazu do pliku.
-- [**stb_image**](https://github.com/nothings/stb) – wczytywanie tekstur (LTC).
+- [**SFML**](https://www.sfml-dev.org/) – window and display handling.
+- [**stb_image_write**](https://github.com/nothings/stb) – saving images to files.
+- [**stb_image**](https://github.com/nothings/stb) – loading textures (LTC).
+- [**mstd**](https://github.com/MAIPA01/mstd) – math library (modified for CUDA compatibility).
 
-📦 **Instalacja bibliotek przez vcpkg**
+📦 **Installation via vcpkg**
 
-Wszystkie zewnętrzne biblioteki są pobierane i zarządzane za pomocą [**vcpkg**](https://github.com/microsoft/vcpkg):
-
-- `sfml`
-- `stb` (zawiera `stb_image` oraz `stb_image_write`)
-
-Upewnij się, że masz skonfigurowane środowisko Visual Studio zintegrowane z vcpkg, np.:
+All external libraries are managed using [**vcpkg**](https://github.com/microsoft/vcpkg):
 
 ```bash
 vcpkg install sfml stb
 ```
 
-W Visual Studio możesz ustawić vcpkg jako domyślny menedżer pakietów CMake/vcpkg lub dodać ścieżkę toolchain:
-```
-CMake toolchain file: [ścieżka_do_vcpkg]/scripts/buildsystems/vcpkg.cmake
-```
-
-## ⚙️ Wymagania
+## ⚙️ Requirements
 
 - **Windows 10/11**
 - **Visual Studio 2022**
-- **CUDA Toolkit (12.9 zalecany)**
-- **NVIDIA GPU z obsługą CUDA**
-- **C++20** (kompilator MSVC)
+- **CUDA Toolkit** (recommended 12.9)
+- **NVIDIA GPU with CUDA support**
+- **C++20** (MSVC compiler)
 
-## 🛠️ Kompilacja i uruchomienie
+## 🛠️ Build and Run
 
-1. Otwórz projekt `CudaRayTracer.sln` w **Visual Studio 2022**.
-2. Ustaw konfigurację na `Release` lub `Debug`.
-3. Upewnij się, że środowisko korzysta z CUDA Runtime.
-4. Uruchom (`Ctrl+F5`).
+1. Open `CudaRayTracer.sln` in **Visual Studio 2022**.
+2. Set configuration to `Release` or `Debug`.
+3. Ensure the project uses CUDA Runtime.
+4. Run (`Ctrl+F5`).
 
-Po renderowaniu obraz zostanie zapisany do pliku `file.hdr`.
+After rendering, the image will first be displayed in a window, and upon closing it, saved as `file.hdr`.
 
-## 🖼️ Podgląd wyników
+## ⚙️ Rendering Settings
 
-Przykład wynikowego obrazu (Cornell Box):
-```
-📁 file.hdr
-```
+- **renderAllAtOnce** *(bool)* – if `true`, rendering is done in one kernel and the entire image is displayed at once.  
+  If `false`, the image is rendered in multiple kernels, each responsible for a specific part, with results shown after each.
+- **blocksPerDraw** *(int)* – relevant only when `renderAllAtOnce = false`; defines how many blocks one kernel processes.
+- **nx**, **ny** *(int)* – image resolution.
+- **tx**, **ty** *(int)* – block size. For CUDA devices supporting 1024 threads per block, the largest square block is 19×19.
+- **aa_iter** *(int)* – number of antialiasing iterations (max 4).
+- **ref_iter** *(int)* – number of ray iterations for refraction and reflection.
+- **gl_iter** *(int)* – number of iterations for global illumination calculations.
+- **ind_rays** *(int)* – number of rays per hemisphere for global illumination (more rays = less noise).
+- **shadowSamples** *(int)* – number of rays used for shadow calculation.
 
-Możesz go otworzyć np. w HDR viewerach, konwertować do `.png` lub innych formatów.
+## 🖼️ Render Preview
 
-## 📂 Struktura projektu
+Example output (Cornell Box):  
+
+![](./renders/render.png)  
+
+The `.hdr` file can be opened in HDR viewers or converted to `.png` and other formats.
+
+## 📂 Project Structure
 
 ```
 .
-├── src/                # Pliki źródłowe (CUDA + C++)
-├── include/            # Nagłówki
-├── file.hdr            # Wygenerowany obraz
-├── external/           # Biblioteki zewnętrzne (stb, SFML)
-├── CudaRayTracer.sln   # Projekt Visual Studio 2022
+├── renders/            # Generated images
+├── CudaRayTracer.sln   # Visual Studio 2022 solution
+├── LICENSE             # License
 └── README.md
 ```
 
-## 📌 Uwagi
+## 📌 Notes
 
-- Scena nie jest ładowana z plików – modyfikacje odbywają się poprzez edycję kodu.
-- Antyaliasing adaptacyjny ograniczony do 4 poziomów (CUDA).
-- Wydajność renderingu zależy od użytej karty graficznej.
+- Scene is defined in code (no external file loading).
+- Adaptive antialiasing limited to 4 levels (CUDA).
+- Performance depends on the GPU used.
+- Rendering settings are modified in the source code.
 
-## 👥 Autorzy
+## 👥 Authors
 
-Projekt stworzony wspólnie przez dwóch studentów w ramach nauki i eksploracji technik ray tracingu z użyciem CUDA.
+Project created by two students while learning and exploring ray tracing techniques with CUDA:
 
-## 📜 Licencja
+- [**Muppetsg2**](https://github.com/Muppetsg2)
+- [**MAIPA01**](https://github.com/MAIPA01)
 
-Projekt udostępniony na licencji **MIT**.
+## 📜 License
+
+📝 This project is licensed under the MIT License.  
+
+- ✅ Free to use, modify, and distribute.  
+- ✅ Suitable for commercial and non-commercial use.  
+- ❗ Must include the original license and copyright.  
+
+See the [LICENSE](./LICENSE) file for details.
