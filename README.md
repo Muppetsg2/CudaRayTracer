@@ -98,13 +98,19 @@ After rendering, the image will first be displayed in a window, and upon closing
 
 ## 🖼️ Render Preview
 
-Example output (Cornell Box):
+Example outputs (Cornell Box):
 
 <p align="center">
-  <img src="./renders/render0.png" alt="Render0 Preview" width="400" />
+  <img src="./renders/render0.png" alt="Example 1 Preview" width="400" />
 </p>
 
-> Example: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadowSamples = 50
+> Example 1: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 0, ind_rays = 75, shadowSamples = 50
+
+<p align="center">
+  <img src="./renders/render1.png" alt="Example 2 Preview" width="400" />
+</p>
+
+> Example 2: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadowSamples = 50
 
 The `.hdr` file can be opened in HDR viewers or converted to `.png` and other formats.
 
