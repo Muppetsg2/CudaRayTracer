@@ -1,7 +1,27 @@
 # CudaRayTracer
 
-**CudaRayTracer** is a project that ports a custom Ray Tracer implementation, originally developed during university studies, to run on the GPU using **CUDA**.  
-The main goal was to explore GPU-based rendering techniques and gain hands-on experience with CUDA programming.
+**CudaRayTracer** - a custom ray tracer ported to GPU using CUDA. Originally developed during university studies and was working on CPU. This project was created to explore GPU rendering techniques and gain hands-on experience with CUDA programming.
+
+## 🔎 Table of Contents
+
+- [✅ Overview](#-overview)
+- [✨ Features](#-features)
+- [🧰 Libraries Used](#-libraries-used)
+- [⚙️ Requirements](#%EF%B8%8F-requirements)
+- [🛠️ Build and Run](#-build-and-run)
+- [⚙️ Rendering Settings](#%EF%B8%8F-rendering-settings)
+- [🖼️ Render Preview](#-render-preview)
+- [📂 Project Structure](#-project-structure)
+- [📌 Notes](#-notes)
+- [👥 Authors](#-authors)
+- [📜 License](#-license)
+
+## ✅ Overview
+
+**CudaRayTracer** is a ray tracer implementation optimized for GPU execution with CUDA. Main goals:
+- Experiment with GPU-based rendering.
+- Gain practical CUDA programming experience.
+- Learn how raytracing works.
 
 ## ✨ Features
 
@@ -78,9 +98,13 @@ After rendering, the image will first be displayed in a window, and upon closing
 
 ## 🖼️ Render Preview
 
-Example output (Cornell Box):  
+Example output (Cornell Box):
 
-![](./renders/render.png)  
+<p align="center">
+  <img src="./renders/render0.png" alt="Render0 Preview" width="400" />
+</p>
+
+> Example: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadowSamples = 50
 
 The `.hdr` file can be opened in HDR viewers or converted to `.png` and other formats.
 
