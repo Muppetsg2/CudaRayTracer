@@ -1,6 +1,6 @@
 # CudaRayTracer
 
-**CudaRayTracer** - a custom ray tracer ported to GPU using CUDA. Originally developed during university studies and was working on CPU. This project was created to explore GPU rendering techniques and gain hands-on experience with CUDA programming.
+**CudaRayTracer** - a custom ray tracer originally developed during university studies to run on CPU, now ported to GPU using CUDA. This project was created to explore GPU rendering techniques and to gain hands-on experience with CUDA programming.
 
 ## 🔎 Table of Contents
 
