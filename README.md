@@ -124,9 +124,9 @@ The `.hdr` file can be opened in HDR viewers or converted to `.png` and other fo
 
 | Global Illumination Ray Bounces | NVIDIA GeForce RTX 4070 Ti SUPER | NVIDIA GeForce RTX 3060 Laptop GPU |
 | ------------------------------- | -------------------------------- | ---------------------------------- |
-| 0 | 00:00:00.000 | 00:00:00.000 |
-| 1 | 00:00:00.000 | 00:00:00.000 |
-| 2 | 00:00:00.000 | 00:00:00.000 |
+| 0 | 00:00:00.116 | 00:00:00.000 |
+| 1 | 00:00:10.438 | 00:00:00.000 |
+| 2 | 00:09:34.214 | 00:00:00.000 |
 | 3 | 06:24:00.602 |  NOT MESURED |
 
 > Rest of parameters was: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, ind_rays = 75, shadowSamples = 50
