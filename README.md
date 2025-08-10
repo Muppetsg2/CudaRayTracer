@@ -112,7 +112,17 @@ Example outputs (Cornell Box):
 
 > Example 2: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadowSamples = 50
 
+<p align="center">
+  <img src="./renders/render2.png" alt="Example 3 Preview" width="400" />
+</p>
+
+> Example 3: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 3, ind_rays = 75, shadowSamples = 50
+
 The `.hdr` file can be opened in HDR viewers or converted to `.png` and other formats.
+
+## 🖥️ Benchmark
+
+Time: 06:24:00.602 gl_iter = 3 NVIDIA GeForce RTX 4070 Ti SUPER // Zrobic tabelke wypisac, ze tylko jedna zmienna sie zmienia i zrobic testy na nizszych wartosciach i na moim laptopie
 
 ## 📂 Project Structure
 
