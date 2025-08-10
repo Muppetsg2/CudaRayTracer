@@ -939,9 +939,6 @@ void randomInit(unsigned int nx, unsigned int ny, unsigned int tx, unsigned int 
     dim3 blocks(nx / tx + 1, ny / ty + 1);
     dim3 threads(tx, ty);
 
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    checkCudaErrors(cudaSetDevice(0));
-
     // Render our buffer
     random_init<<<blocks, threads>>>(nx, ny, time(NULL), rand_state);
 
@@ -958,9 +955,6 @@ void renderWithCuda(float* fb, unsigned int nx, unsigned int ny, unsigned int tx
 {
     dim3 blocks(nx / tx + 1, ny / ty + 1);
     dim3 threads(tx, ty);
-
-    // Choose which GPU to run on, change this on a multi-GPU system.
-    checkCudaErrors(cudaSetDevice(0));
 
     // Render our buffer
     render<<<blocks, threads>>>(fb, nx, ny, aa_iter, ref_iter, gl_iter, ind_rays, d_cam, d_world, d_lights, rand_state);

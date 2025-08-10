@@ -122,7 +122,14 @@ The `.hdr` file can be opened in HDR viewers or converted to `.png` and other fo
 
 ## 🖥️ Benchmark
 
-Time: 06:24:00.602 gl_iter = 3 NVIDIA GeForce RTX 4070 Ti SUPER // Zrobic tabelke wypisac, ze tylko jedna zmienna sie zmienia i zrobic testy na nizszych wartosciach i na moim laptopie
+| Global Illumination Ray Bounces | NVIDIA GeForce RTX 4070 Ti SUPER | NVIDIA GeForce RTX 3060 Laptop GPU |
+| ------------------------------- | -------------------------------- | ---------------------------------- |
+| 0 | 00:00:00.000 | 00:00:00.000 |
+| 1 | 00:00:00.000 | 00:00:00.000 |
+| 2 | 00:00:00.000 | 00:00:00.000 |
+| 3 | 06:24:00.602 |  NOT MESURED |
+
+> Rest of parameters was: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, ind_rays = 75, shadowSamples = 50
 
 ## 📂 Project Structure
 
