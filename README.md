@@ -93,7 +93,7 @@ After rendering, the image will first be displayed in a window, and upon closing
 - **tx**, **ty** *(int)* – block size. For CUDA devices supporting 1024 threads per block, the largest square block is 19×19.
 - **aa_iter** *(int)* – number of antialiasing iterations (max 4).
 - **ref_iter** *(int)* – number of ray iterations for refraction and reflection.
-- **gl_iter** *(int)* – number of iterations for global illumination calculations.
+- **gl_iter** *(int)* – number of iterations for global illumination calculations. In other words, it specifies the number of gl ray bounces.
 - **ind_rays** *(int)* – number of rays per hemisphere for global illumination (more rays = less noise).
 - **shadowSamples** *(int)* – number of rays used for shadow calculation.
 
@@ -123,14 +123,20 @@ The `.hdr` file can be opened in HDR viewers or converted to `.png` and other fo
 
 ## 🖥️ Benchmark
 
-| Global Illumination Ray Bounces | NVIDIA GeForce RTX 4070 Ti SUPER | NVIDIA GeForce RTX 3060 Laptop GPU |
-| ------------------------------- | -------------------------------- | ---------------------------------- |
-| 0 | 00:00:00.116 | 00:00:00.000 |
-| 1 | 00:00:10.438 | 00:00:00.000 |
-| 2 | 00:09:34.214 | 00:00:00.000 |
-| 3 | 06:24:00.602 |  NOT MESURED |
+Tested parameters:
+`nx = 720`, `ny = 720`, `aa_iter = 1`, `ref_iter = 4`, `ind_rays = 75`, `shadowSamples = 50`
 
-> Rest of parameters was: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, ind_rays = 75, shadowSamples = 50
+| 🌐 GI Ray Bounces | ⚡ RTX 4070 Ti SUPER | ⚡ RTX 3060 Laptop GPU |
+| ------------------------------- | -------------------------------- | ---------------------------------- |
+| 0 | ⏱️ 0.116 s | ⏱️ 0.350 s |
+| 1 | ⏱️ 10.438 s	 | ⏱️ 23.596 s |
+| 2 | ⏱️ 9 min 34.214 s | ⏱️ 29 min 50.129 s |
+| 3 | ⏱️ 6 h 24 min 0.602 s |  ❌ *Not measured* |
+
+> Legend: 
+>   - **GI Ray Bounces** – number of ray bounces in Global Illumination calculations. Corresponds to the `gl_iter` parameter.
+>   - Time measured in Release mode.
+>   - ❌ – measurement not performed.
 
 ## 📂 Project Structure
 
