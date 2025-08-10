@@ -1,4 +1,13 @@
-﻿#ifdef __INTELLISENSE__
+﻿/**************************************************************
+ *                                                            *
+ *  Project:   CudaRayTracer                                  *
+ *  Authors:   Muppetsg2 & MAIPA01                            *
+ *  License:   MIT License                                    *
+ *  Last Update: 10.08.2025                                   *
+ *                                                            *
+ **************************************************************/
+
+#ifdef __INTELLISENSE__
 #define __CUDACC__
 #endif // __INTELLISENSE__
 

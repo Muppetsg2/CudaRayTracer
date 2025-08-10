@@ -1,3 +1,11 @@
+/*****************************************************************
+ *                                                               *
+ *  Project:   MSTD                                              *
+ *  Authors:   MAIPA01                                           *
+ *  License:   BSD 3-Clause License with Attribution Requirement *
+ *                                                               *
+ *****************************************************************/
+
 #pragma once
 #ifndef MSTD_USE_CUDA
 #include <bit>
