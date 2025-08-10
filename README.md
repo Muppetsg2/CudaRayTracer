@@ -11,7 +11,7 @@
 - [🛠️ Build and Run](#%EF%B8%8F-build-and-run)
 - [⚙️ Rendering Settings](#%EF%B8%8F-rendering-settings)
 - [🖼️ Render Preview](#%EF%B8%8F-render-preview)
-- [🖥️ Benchmark](-benchmark)
+- [🖥️ Benchmark](%EF%B8%8F-benchmark)
 - [📂 Project Structure](#-project-structure)
 - [📌 Notes](#-notes)
 - [👥 Authors](#-authors)
