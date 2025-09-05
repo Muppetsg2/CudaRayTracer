@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 05.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -38,6 +38,8 @@
 #include "LightList.hpp"
 #include "AreaLight.hpp"
 #include "ldg_helpers.hpp"
+#include "Directory_helpers.hpp"
+#include "Settings.hpp"
 #pragma endregion
 
 using namespace craytracer;
@@ -631,7 +633,7 @@ int main()
     const unsigned int ty = 19; // Optimized
     const unsigned int aa_iter = 1; // Optimized
     const unsigned int ref_iter = 4; // Optimized
-    const unsigned int gl_iter = 2; // For Performance 2, for quality 4
+    const unsigned int gl_iter = 0; // For Performance 2, for quality 4
     const unsigned int ind_rays = 75; // I think its good enough
     const unsigned int shadowSamples = 50; // Optimized
 

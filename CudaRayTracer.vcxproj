@@ -106,6 +106,7 @@
     <ClInclude Include="AreaLight.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Color.hpp" />
+    <ClInclude Include="Directory_helpers.hpp" />
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="GeometryList.hpp" />
     <ClInclude Include="ldg_helpers.hpp" />
@@ -120,6 +121,7 @@
     <ClInclude Include="Quad.hpp" />
     <ClInclude Include="quat.hpp" />
     <ClInclude Include="Ray.hpp" />
+    <ClInclude Include="Settings.hpp" />
     <ClInclude Include="Sphere.hpp" />
     <ClInclude Include="Texture.hpp" />
     <ClInclude Include="vec.hpp" />
