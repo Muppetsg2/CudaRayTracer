@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 06.09.2025                                   *
+ *  Last Update: 22.09.2025                                   *
  *                                                            *
  **************************************************************/
 

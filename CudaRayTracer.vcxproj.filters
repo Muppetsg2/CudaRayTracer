@@ -69,7 +69,7 @@
     </ClInclude>
     <ClInclude Include="ldg_helpers.hpp" />
     <ClInclude Include="Settings.hpp" />
-    <ClInclude Include="Directory_helpers.hpp" />
+    <ClInclude Include="directory_helpers.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Geometry">

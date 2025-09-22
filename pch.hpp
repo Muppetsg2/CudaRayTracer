@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 22.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -21,12 +21,14 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <thrust/functional.h>
 #include <thrust/swap.h>
 #include <thrust/pair.h>
 #include <thrust/tuple.h>
 #include <corecrt_math_defines.h>
 #include <time.h>
+#include <type_traits>
 #include <vector>
 
 

@@ -106,7 +106,7 @@
     <ClInclude Include="AreaLight.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Color.hpp" />
-    <ClInclude Include="Directory_helpers.hpp" />
+    <ClInclude Include="directory_helpers.hpp" />
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="GeometryList.hpp" />
     <ClInclude Include="ldg_helpers.hpp" />

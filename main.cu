@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 05.09.2025                                   *
+ *  Last Update: 22.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -38,7 +38,7 @@
 #include "LightList.hpp"
 #include "AreaLight.hpp"
 #include "ldg_helpers.hpp"
-#include "Directory_helpers.hpp"
+#include "directory_helpers.hpp"
 #include "Settings.hpp"
 #pragma endregion
 
@@ -621,21 +621,26 @@ int main()
 
     printf("CUDA initialized.\n");
 
+    Settings settings;
+    fs::path exeDir = getExecutableDir();
+
+    settings.load(exeDir.string());
+
 #pragma endregion
 
 #pragma region Parameters
 
-    const bool renderAllAtOnce = true;
-    const unsigned int blocksPerDraw = 200;
-    const unsigned int nx = 720;
-    const unsigned int ny = 720;
+    const bool renderAllAtOnce = settings.getRenderAllAtOnce();
+    const unsigned int blocksPerDraw = settings.getBlocksPerDraw();
+    const unsigned int nx = settings.getImageWidth();
+    const unsigned int ny = settings.getImageHeight();
     const unsigned int tx = 19; // Optimized
     const unsigned int ty = 19; // Optimized
-    const unsigned int aa_iter = 1; // Optimized
-    const unsigned int ref_iter = 4; // Optimized
-    const unsigned int gl_iter = 0; // For Performance 2, for quality 4
-    const unsigned int ind_rays = 75; // I think its good enough
-    const unsigned int shadowSamples = 50; // Optimized
+    const unsigned int aa_iter = settings.getAAIterations();
+    const unsigned int ref_iter = settings.getRefIterations();
+    const unsigned int gl_iter = settings.getGlobalIlluminationIterations();
+    const unsigned int ind_rays = settings.getIndirectRays();
+    const unsigned int shadowSamples = settings.getShadowSamples();
 
 #pragma endregion
 
@@ -855,7 +860,8 @@ int main()
 
     // Save Image
     fprintf(stdout, "Saving image...");
-    stbi_write_hdr("file.hdr", nx, ny, 4, fb);
+    fs::path path = settings.getOutputPath() / (settings.getFileName() + ".hdr");
+    stbi_write_hdr(path.string().c_str(), nx, ny, 4, fb);
 
 #pragma endregion
 
@@ -887,7 +893,7 @@ int main()
 
 #pragma region End
 
-    fprintf(stdout, "\nImage saved as 'file.hdr'. Press Enter to exit...");
+    fprintf(stdout, ("\nImage saved as '" + settings.getFileName() + ".hdr'. Press Enter to exit...").c_str());
     getchar();
 
     return EXIT_SUCCESS;
