@@ -121,6 +121,7 @@
     <ClInclude Include="Quad.hpp" />
     <ClInclude Include="quat.hpp" />
     <ClInclude Include="Ray.hpp" />
+    <ClInclude Include="SceneDescription.hpp" />
     <ClInclude Include="Settings.hpp" />
     <ClInclude Include="Sphere.hpp" />
     <ClInclude Include="Texture.hpp" />

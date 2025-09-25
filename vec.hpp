@@ -55,8 +55,12 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR constexpr void _fill_values(const T& value) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[0], N, value);
+#else
+			::thrust::fill_n(::thrust::host, &_values[0], N, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0], N, value);
 #endif
@@ -64,8 +68,12 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR constexpr void _fill_values_from(size_t first_idx, const T& value) {
 			if (first_idx >= N) return;
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[0] + first_idx, N - first_idx, value);
+#else
+			::thrust::fill_n(::thrust::host, &_values[0] + first_idx, N - first_idx, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0] + first_idx, N - first_idx, value);
 #endif
@@ -203,7 +211,7 @@ namespace MSTD_NAMESPACE {
 #pragma endregion // CONSTRUCTORS
 
 #pragma region DESTRUCTOR
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		virtual ~vec() = default;
 #endif
 #pragma endregion // DESTRUCTOR
@@ -396,7 +404,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR T length() const {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				return __fdividef(1.0f, rsqrtf(length_sq()));
 			}
@@ -411,7 +419,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR vec<N, T>& normalize() {
 			T len = length();
 			if (len == T(0)) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return *this;
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("length was zero");
@@ -438,14 +446,14 @@ namespace MSTD_NAMESPACE {
 			T other_len = other.length_sq();
 
 			if (this_len == T(0) || other_len == T(0)) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return T(0);
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("length was zero");
 #endif
 			}
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				return acosf(dot(other) * rsqrtf(this_len * other_len));
 			}
@@ -476,7 +484,7 @@ namespace MSTD_NAMESPACE {
 			float cos_theta = MSTD_STD_NAMESPACE::min((-(*this)).dot(normal), T(1));
 			vec<N, T> r_out_perp = eta * (*this + cos_theta * normal);
 			float length_sq = r_out_perp.length_sq();
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			vec<N, T> r_out_parallel;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				r_out_parallel = -normal / rsqrtf(MSTD_STD_NAMESPACE::abs(1.0f - length_sq));
@@ -492,11 +500,7 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR vec<N, T>& saturate() noexcept {
 			for (size_t i = 0; i != N; ++i) {
-#ifdef MSTD_USE_CUDA
-				_values[i] = ::MSTD_NAMESPACE::saturate<T, true>(_values[i]);
-#else
 				_values[i] = ::MSTD_NAMESPACE::saturate(_values[i]);
-#endif
 			}
 			return *this;
 		}
@@ -519,7 +523,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR vec<N, T>& mod(const T& y) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				float one_over_y = 1.0f / y;
 				for (size_t i = 0; i != N; ++i) {
@@ -554,7 +558,7 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR vec<N, T>& mod(const vec<N, T>& other) {
 			for (size_t i = 0; i != N; ++i) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					_values[i] -= other[i] * floorf(__fdividef(_values[i], other[i]));
 				}
@@ -686,7 +690,7 @@ namespace MSTD_NAMESPACE {
 		}
 		MSTD_CUDA_EXPR vec<N, T>& operator/=(const vec<N, T>& other) {
 			if (other.is_zero()) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return *this;
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
@@ -700,7 +704,7 @@ namespace MSTD_NAMESPACE {
 			else {
 				T one_over_other[N];
 				for (size_t i = 0; i != N; ++i) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 					if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 						one_over_other[i] = __fdividef(1.0f, other[i]);
 					}
@@ -738,7 +742,7 @@ namespace MSTD_NAMESPACE {
 		}
 		MSTD_CUDA_EXPR vec<N, T>& operator/=(const T& y) {
 			if (y == T(0)) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return *this;
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
@@ -750,7 +754,7 @@ namespace MSTD_NAMESPACE {
 				}
 			}
 			else {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				T one_over_y;
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					one_over_y = 1.0f / y;
@@ -833,8 +837,12 @@ namespace MSTD_NAMESPACE {
 				return false;
 			}
 			else {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 				return ::thrust::equal(::thrust::device, _values, _values + N, static_cast<const T*>(other));
+#else
+				return ::thrust::equal(::thrust::host, _values, _values + N, static_cast<const T*>(other));
+#endif
 #else
 				return MSTD_STD_NAMESPACE::memcmp(_values, static_cast<const T*>(other), N * sizeof(T)) == 0;
 #endif
@@ -857,7 +865,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		// ostream operators are not supported on cuda
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const vec<N, T>& vector) {
 			str << "[";
 			for (size_t i = 0; i != N; ++i) {

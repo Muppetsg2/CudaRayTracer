@@ -1,0 +1,184 @@
+camera:
+  is_perspective: true
+  position: [0.0, 0.0, 0.0]
+  front: [0.0, 0.0, -1.0]
+  fov: 45.0
+  ortho_scale: 2.0
+
+materials:
+    # REFLECT
+  - id: 0
+    type: Reflect
+    ambient: [0.1, 0.1, 0.1, 0.1]
+    diffuse: [1.0, 1.0, 1.0, 1.0]
+    specular: [1.0, 1.0, 1.0, 1.0]
+    shininess: 0.0
+    # REFRACTIVE
+  - id: 1
+    type: Refractive
+    ambient: [0.1, 0.1, 0.1, 0.1]
+    diffuse: [1.0, 1.0, 1.0, 1.0]
+    specular: [1.0, 1.0, 1.0, 1.0]
+    shininess: 0.0
+    refract_index: 1.5
+    # WHITE EMISSIVE
+  - id: 2
+    type: Diffuse
+    ambient: white
+    diffuse: white
+    specular: white
+    shininess: 0.0
+    # WHITE
+  - id: 3
+    type: Diffuse
+    ambient: [0.1, 0.1, 0.1, 0.1]
+    diffuse: white
+    specular: white
+    shininess: 5.0
+    # RED
+  - id: 4
+    type: Diffuse
+    ambient: [0.1, 0.0, 0.0, 0.1]
+    diffuse: red
+    specular: red
+    shininess: 5.0
+    # BLUE
+  - id: 5
+    type: Diffuse
+    ambient: [0.0, 0.0, 0.1, 0.1]
+    diffuse: blue
+    specular: blue
+    shininess: 5.0
+    
+objects:
+    # REFLECT
+  - type: Sphere
+    center: [-0.25, -0.72, -1.1]
+    radius: 0.275
+    material_id: 0
+    # REFRACT
+  - type: Sphere
+    center: [0.3, -0.72, -0.6]
+    radius: 0.275
+    material_id: 1
+    # BACK
+  - type: Quad
+    positions:
+      - [-1.0, -1.0, -2.0]
+      - [1.0, -1.0, -2.0]
+      - [1.0, 1.0, -2.0]
+      - [-1.0, 1.0, -2.0]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [0.0, 0.0, 1.0]
+      - [0.0, 0.0, 1.0]
+      - [0.0, 0.0, 1.0]
+      - [0.0, 0.0, 1.0]
+    material_id: 3
+    # TOP
+  - type: Quad
+    positions:
+      - [-1.0, 1.0, -2.0]
+      - [1.0, 1.0, -2.0]
+      - [1.0, 1.0, 0.0]
+      - [-1.0, 1.0, 0.0]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+    material_id: 3
+    # BOTTOM
+  - type: Quad
+    positions:
+      - [-1.0, -1.0, -2.0]
+      - [1.0, -1.0, -2.0]
+      - [1.0, -1.0, 0.0]
+      - [-1.0, -1.0, 0.0]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [0.0, 1.0, 0.0]
+      - [0.0, 1.0, 0.0]
+      - [0.0, 1.0, 0.0]
+      - [0.0, 1.0, 0.0]
+    material_id: 3
+    # RIGHT
+  - type: Quad
+    positions:
+      - [1.0, -1.0, -2.0]
+      - [1.0, -1.0, 0.0]
+      - [1.0, 1.0, 0.0]
+      - [1.0, 1.0, -2.0]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [-1.0, 0.0, 0.0]
+      - [-1.0, 0.0, 0.0]
+      - [-1.0, 0.0, 0.0]
+      - [-1.0, 0.0, 0.0]
+    material_id: 5
+    # LEFT V
+  - type: Quad
+    positions:
+      - [-1.0, -1.0, -2.0]
+      - [-1.0, 1.0, -2.0]
+      - [-1.0, 1.0, 0.0]
+      - [-1.0, -1.0, 0.0]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [1.0, 0.0, 0.0]
+      - [1.0, 0.0, 0.0]
+      - [1.0, 0.0, 0.0]
+      - [1.0, 0.0, 0.0]
+    material_id: 4
+    # LIGHT
+  - type: Quad
+    positions:
+      - [-0.25, 0.99, -1.25]
+      - [ 0.25, 0.99, -1.25]
+      - [ 0.25, 0.99, -0.75]
+      - [-0.25, 0.99, -0.75]
+    tex_coords:
+      - [0.0, 0.0]
+      - [1.0, 0.0]
+      - [1.0, 1.0]
+      - [0.0, 1.0]
+    normals:
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+      - [0.0, -1.0, 0.0]
+    material_id: 2
+
+lights:
+  - type: Area
+    points:
+      - [-0.25, 0.98, -1.25]
+      - [ 0.25, 0.98, -1.25]
+      - [ 0.25, 0.98, -0.75]
+      - [-0.25, 0.98, -0.75]
+    rotation_axis: [1.0, 0.0, 0.0]
+    rotation_angle: 180.0
+    two_sided: false
+    color: white
+    intensity: 10.0

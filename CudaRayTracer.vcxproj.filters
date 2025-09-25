@@ -70,6 +70,7 @@
     <ClInclude Include="ldg_helpers.hpp" />
     <ClInclude Include="Settings.hpp" />
     <ClInclude Include="directory_helpers.hpp" />
+    <ClInclude Include="SceneDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Geometry">

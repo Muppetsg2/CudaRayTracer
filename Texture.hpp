@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 25.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -130,7 +130,7 @@ namespace craytracer {
 				switch (_horizontalWrapMode) {
 					case WRAP_MODE::CLAMP: {
 #ifdef __CUDACC__
-						resF.x() = saturate<float, true>(resF.x());
+						resF.x() = saturate<float>(resF.x());
 #else
 						resF.x() = saturate(resF.x());
 #endif
@@ -155,7 +155,7 @@ namespace craytracer {
 				switch (_verticalWrapMode) {
 					case WRAP_MODE::CLAMP: {
 #ifdef __CUDACC__
-						resF.y() = saturate<float, true>(resF.y());
+						resF.y() = saturate<float>(resF.y());
 #else
 						resF.y() = saturate(resF.y());
 #endif

@@ -3,11 +3,14 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 22.09.2025                                   *
+ *  Last Update: 25.09.2025                                   *
  *                                                            *
  **************************************************************/
 
 #pragma once
+#include <vector>
+#include <string>
+#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -23,8 +26,9 @@ namespace craytracer {
         unsigned int _gl_iter;
         unsigned int _ind_rays;
         unsigned int _shadow_samples;
-        fs::path _output_path;
         std::string _file_name;
+        fs::path _output_path;
+        fs::path _world_file_path;
 
         enum class ValueType : uint8_t {
             BOOL = 0,
@@ -91,6 +95,12 @@ namespace craytracer {
                         200,
                         "If `render_all_at_once` is false then in one draw will be used that many blocks.",
                         [&](unsigned int x) { _blocks_per_draw = x; }
+                    },
+                    Value<ValueType::PATH>{
+                        "world_file_path",
+                        "./world.yaml",
+                        "The path to file containing info about world. This can be relative to the exe file or absolute.",
+                        [&](fs::path x) { _world_file_path = x; }
                     }
                 }
             },
@@ -327,7 +337,7 @@ namespace craytracer {
                             else if (p.is_relative()) {
                                 p = fs::path(exeDir) / p;
                             }
-                            val.addFunc(p);
+                            val.addFunc(p.lexically_normal());
                         }
                         else if constexpr (std::is_same_v<T, std::vector<bool>>) {
                             std::vector<bool> parsed;
@@ -377,7 +387,7 @@ namespace craytracer {
                                 else if (p.is_relative()) {
                                     p = fs::path(exeDir) / p;
                                 }
-                                parsed.push_back(p);
+                                parsed.push_back(p.lexically_normal());
                             }
                             val.addFunc(parsed);
                         }
@@ -423,5 +433,6 @@ namespace craytracer {
         const unsigned int& getShadowSamples() const { return _shadow_samples; }
         const std::string& getFileName() const { return _file_name; }
         const fs::path& getOutputPath() const { return _output_path; }
+        const fs::path& getWorldFilePath() const { return _world_file_path; }
     };
 }

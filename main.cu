@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 22.09.2025                                   *
+ *  Last Update: 25.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -40,6 +40,7 @@
 #include "ldg_helpers.hpp"
 #include "directory_helpers.hpp"
 #include "Settings.hpp"
+#include "SceneDescription.hpp"
 #pragma endregion
 
 using namespace craytracer;
@@ -309,8 +310,8 @@ __device__ __forceinline__ vec4 get_world_coordinates(unsigned int x, unsigned i
 {
     float height_world = 2.f;
     float width_world = height_world * __fdividef((float)w, (float)h);
-    float x_world = remap<float, true>((float)x, 0.f, (float)w, -width_world * 0.5f, width_world * 0.5f);
-    float y_world = remap<float, true>((float)y, 0.f, (float)h, 1.f, -1.f);
+    float x_world = remap<float>((float)x, 0.f, (float)w, -width_world * 0.5f, width_world * 0.5f);
+    float y_world = remap<float>((float)y, 0.f, (float)h, 1.f, -1.f);
 
     return vec4(x_world, y_world, width_world, height_world);
 }
@@ -369,244 +370,73 @@ __global__ void render_partial(float* fb, unsigned int max_x, unsigned int max_y
     rand_state[idx] = local_rand_state;
 }
 
-__global__ void create_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
+__global__ void create_world(SceneDescription* scene, Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // Camera
-        *d_cam = new Camera(vec3::zero(), vec3(0.f, 0.f, -1.f), CameraType::PERSPECTIVE, deg_to_rad<float, true>(45.f), 2.f);
+        *d_cam = new Camera(scene->cam.position, scene->cam.front, scene->cam.type, deg_to_rad(scene->cam.fov), scene->cam.orthoScale);
 
-        // AreaLight Position
-        vec3 quadPoints[4] = {
-            vec3(-.25f, .98f, -1.25f),
-            vec3(.25f, .98f, -1.25f),
-            vec3(.25f, .98f, -.75f),
-            vec3(-.25f, .98f, -.75f)
-        };
-
-        // Materials
-        Material reflect =
-        {
+        for (size_t i = 0; i < scene->objectsCount; ++i) {
+            ObjectDesc o = scene->objects[i];
+            if (o.type == ObjectType::Sphere) {
+                d_glist[i] = new Sphere(o.sphere.center, o.sphere.radius);
+            }
+            else if (o.type == ObjectType::Quad) {
+                d_glist[i] = new Quad
+                (
 #if _HAS_CXX20
-            .type = MaterialType::Reflect,
-            .ambient = Color::white() * 0.1f,
-            .diffuse = Color::white(),
-            .specular = Color::white(),
-            .shininess = 0.f
+                    { .pos = o.quad.positions[0], .tex = o.quad.texCoords[0], .normal = o.quad.normals[0] },
+                    { .pos = o.quad.positions[1], .tex = o.quad.texCoords[1], .normal = o.quad.normals[1] },
+                    { .pos = o.quad.positions[2], .tex = o.quad.texCoords[2], .normal = o.quad.normals[2] },
+                    { .pos = o.quad.positions[3], .tex = o.quad.texCoords[3], .normal = o.quad.normals[3] }
 #else
-            MaterialType::Reflect,
-            Color::white() * 0.1f,
-            Color::white(),
-            Color::white(),
-            0.f
+                    { o.quad.positions[0], o.quad.texCoords[0], o.quad.normals[0] },
+                    { o.quad.positions[1], o.quad.texCoords[1], o.quad.normals[1] },
+                    { o.quad.positions[2], o.quad.texCoords[2], o.quad.normals[2] },
+                    { o.quad.positions[3], o.quad.texCoords[3], o.quad.normals[3] }
 #endif
-        };
+                );
+            }
 
-        Material refractive =
-        {
-#if _HAS_CXX20
-            .type = MaterialType::Refractive,
-            .ambient = Color::white() * 0.1f,
-            .diffuse = Color::white(),
-            .specular = Color::white(),
-            .shininess = 0.f,
-            .refractIndex = 1.5f
-#else
-            MaterialType::Refractive,
-            Color::white() * 0.1f,
-            Color::white(),
-            Color::white(),
-            0.f,
-            1.5f
-#endif
-        };
+            Material mat;
+            for (size_t i = 0; i < scene->materialsCount; ++i) {
+                MaterialDesc m = scene->materials[i];
+                if (m.id == o.materialId) {
+                    mat.type = m.type;
+                    mat.ambient = m.ambient;
+                    mat.diffuse = m.diffuse;
+                    mat.specular = m.specular;
+                    mat.shininess = m.shininess;
+                    mat.refractIndex = m.refractIndex;
+                    break;
+                }
+            }
+            d_glist[i]->setMaterial(mat);
+        }
+        *d_gworld = new GeometryList(d_glist, scene->objectsCount);
 
-        Material whiteEmissive =
-        {
-#if _HAS_CXX20
-            .type = MaterialType::Diffuse,
-            .ambient = Color::white(),
-            .diffuse = Color::white(),
-            .specular = Color::white(),
-            .shininess = 0.f
-#else
-            MaterialType::Diffuse,
-            Color::white(),
-            Color::white(),
-            Color::white(),
-            0.f
-#endif
-        };
-
-        Material white = {
-#if _HAS_CXX20
-            .type = MaterialType::Diffuse,
-            .ambient = Color::white() * 0.1f,
-            .diffuse = Color::white(),
-            .specular = Color::white(),
-            .shininess = 5.f
-#else
-            MaterialType::Diffuse,
-            Color::white() * 0.1f,
-            Color::white(),
-            Color::white(),
-            5.f
-#endif
-        };
-
-        Material red =
-        {
-#if _HAS_CXX20
-            .type = MaterialType::Diffuse,
-            .ambient = Color::red() * 0.1f,
-            .diffuse = Color::red(),
-            .specular = Color::red(),
-            .shininess = 5.f
-#else
-            MaterialType::Diffuse,
-            Color::red() * 0.1f,
-            Color::red(),
-            Color::red(),
-            5.f
-#endif
-        };
-
-        Material blue =
-        {
-#if _HAS_CXX20
-            .type = MaterialType::Diffuse,
-            .ambient = Color::blue() * 0.1f,
-            .diffuse = Color::blue(),
-            .specular = Color::blue(),
-            .shininess = 5.f
-#else
-            MaterialType::Diffuse,
-            Color::blue() * 0.1f,
-            Color::blue(),
-            Color::blue(),
-            5.f
-#endif
-        };
-
-        d_glist[0] = new Sphere(vec3(-0.25f, -.72f, -1.1f), .275f); // REFLECT
-        d_glist[0]->setMaterial(reflect);
-
-        d_glist[1] = new Sphere(vec3(0.3f, -.72f, -.6f), .275f); // REFRACT
-        d_glist[1]->setMaterial(refractive);
-
-        d_glist[2] = new Quad // BACK
-        (
-#if _HAS_CXX20
-            { .pos = vec3(-1.f, -1.f, -2.f), .tex = vec2(0.f, 0.f), .normal = vec3(0.f, 0.f, 1.f) },
-            { .pos = vec3( 1.f, -1.f, -2.f), .tex = vec2(1.f, 0.f), .normal = vec3(0.f, 0.f, 1.f) },
-            { .pos = vec3( 1.f,  1.f, -2.f), .tex = vec2(1.f, 1.f), .normal = vec3(0.f, 0.f, 1.f) },
-            { .pos = vec3(-1.f,  1.f, -2.f), .tex = vec2(0.f, 1.f), .normal = vec3(0.f, 0.f, 1.f) }
-#else
-            { vec3(-1.f, -1.f, -2.f), vec2(0.f, 0.f), vec3(0.f, 0.f, 1.f) },
-            { vec3( 1.f, -1.f, -2.f), vec2(1.f, 0.f), vec3(0.f, 0.f, 1.f) },
-            { vec3( 1.f,  1.f, -2.f), vec2(1.f, 1.f), vec3(0.f, 0.f, 1.f) },
-            { vec3(-1.f,  1.f, -2.f), vec2(0.f, 1.f), vec3(0.f, 0.f, 1.f) }
-#endif
-        );
-        d_glist[2]->setMaterial(white);
-
-        d_glist[3] = new Quad // TOP
-        (
-#if _HAS_CXX20
-            { .pos = vec3(-1.f, 1.f, -2.f), .tex = vec2(0.f, 0.f), .normal = vec3(0.f, -1.f, 0.f) },
-            { .pos = vec3( 1.f, 1.f, -2.f), .tex = vec2(1.f, 0.f), .normal = vec3(0.f, -1.f, 0.f) },
-            { .pos = vec3( 1.f, 1.f,  0.f), .tex = vec2(1.f, 1.f), .normal = vec3(0.f, -1.f, 0.f) },
-            { .pos = vec3(-1.f, 1.f,  0.f), .tex = vec2(0.f, 1.f), .normal = vec3(0.f, -1.f, 0.f) }
-#else
-            { vec3(-1.f, 1.f, -2.f), vec2(0.f, 0.f), vec3(0.f, -1.f, 0.f) },
-            { vec3( 1.f, 1.f, -2.f), vec2(1.f, 0.f), vec3(0.f, -1.f, 0.f) },
-            { vec3( 1.f, 1.f,  0.f), vec2(1.f, 1.f), vec3(0.f, -1.f, 0.f) },
-            { vec3(-1.f, 1.f,  0.f), vec2(0.f, 1.f), vec3(0.f, -1.f, 0.f) }
-#endif
-        );
-        d_glist[3]->setMaterial(white);
-
-        d_glist[4] = new Quad // BOTTOM
-        (
-#if _HAS_CXX20
-            { .pos = vec3(-1.f, -1.f, -2.f), .tex = vec2(0.f, 0.f), .normal = vec3(0.f, 1.f, 0.f) },
-            { .pos = vec3( 1.f, -1.f, -2.f), .tex = vec2(1.f, 0.f), .normal = vec3(0.f, 1.f, 0.f) },
-            { .pos = vec3( 1.f, -1.f,  0.f), .tex = vec2(1.f, 1.f), .normal = vec3(0.f, 1.f, 0.f) },
-            { .pos = vec3(-1.f, -1.f,  0.f), .tex = vec2(0.f, 1.f), .normal = vec3(0.f, 1.f, 0.f) }
-#else
-            { vec3(-1.f, -1.f, -2.f), vec2(0.f, 0.f), vec3(0.f, 1.f, 0.f) },
-            { vec3( 1.f, -1.f, -2.f), vec2(1.f, 0.f), vec3(0.f, 1.f, 0.f) },
-            { vec3( 1.f, -1.f,  0.f), vec2(1.f, 1.f), vec3(0.f, 1.f, 0.f) },
-            { vec3(-1.f, -1.f,  0.f), vec2(0.f, 1.f), vec3(0.f, 1.f, 0.f) }
-#endif
-        );
-        d_glist[4]->setMaterial(white);
-
-        d_glist[5] = new Quad // RIGHT
-        (
-#if _HAS_CXX20
-            { .pos = vec3(1.f, -1.f, -2.f), .tex = vec2(0.f, 0.f), .normal = vec3(-1.f, 0.f, 0.f) },
-            { .pos = vec3(1.f, -1.f,  0.f), .tex = vec2(1.f, 0.f), .normal = vec3(-1.f, 0.f, 0.f) },
-            { .pos = vec3(1.f,  1.f,  0.f), .tex = vec2(1.f, 1.f), .normal = vec3(-1.f, 0.f, 0.f) },
-            { .pos = vec3(1.f,  1.f, -2.f), .tex = vec2(0.f, 1.f), .normal = vec3(-1.f, 0.f, 0.f) }
-#else
-            { vec3(1.f, -1.f, -2.f), vec2(0.f, 0.f), vec3(-1.f, 0.f, 0.f) },
-            { vec3(1.f, -1.f,  0.f), vec2(1.f, 0.f), vec3(-1.f, 0.f, 0.f) },
-            { vec3(1.f,  1.f,  0.f), vec2(1.f, 1.f), vec3(-1.f, 0.f, 0.f) },
-            { vec3(1.f,  1.f, -2.f), vec2(0.f, 1.f), vec3(-1.f, 0.f, 0.f) }
-#endif
-        );
-        d_glist[5]->setMaterial(blue);
-
-        d_glist[6] = new Quad // LEFT
-        (
-#if _HAS_CXX20
-            { .pos = vec3(-1.f, -1.f, -2.f), .tex = vec2(0.f, 0.f), .normal = vec3(1.f, 0.f, 0.f) },
-            { .pos = vec3(-1.f,  1.f, -2.f), .tex = vec2(1.f, 0.f), .normal = vec3(1.f, 0.f, 0.f) },
-            { .pos = vec3(-1.f,  1.f,  0.f), .tex = vec2(1.f, 1.f), .normal = vec3(1.f, 0.f, 0.f) },
-            { .pos = vec3(-1.f, -1.f,  0.f), .tex = vec2(0.f, 1.f), .normal = vec3(1.f, 0.f, 0.f) }
-#else
-            { vec3(-1.f, -1.f, -2.f), vec2(0.f, 0.f), vec3(1.f, 0.f, 0.f) },
-            { vec3(-1.f,  1.f, -2.f), vec2(1.f, 0.f), vec3(1.f, 0.f, 0.f) },
-            { vec3(-1.f,  1.f,  0.f), vec2(1.f, 1.f), vec3(1.f, 0.f, 0.f) },
-            { vec3(-1.f, -1.f,  0.f), vec2(0.f, 1.f), vec3(1.f, 0.f, 0.f) }
-#endif
-        );
-        d_glist[6]->setMaterial(red);
-
-        d_glist[7] = new Quad // LIGHT
-        (
-#if _HAS_CXX20
-            { .pos = vec3(quadPoints[0].x(), quadPoints[0].y() + 0.01f, quadPoints[0].z()), .tex = vec2(0.f, 0.f), .normal = vec3(0.f, -1.f, 0.f)},
-            { .pos = vec3(quadPoints[1].x(), quadPoints[1].y() + 0.01f, quadPoints[1].z()), .tex = vec2(1.f, 0.f), .normal = vec3(0.f, -1.f, 0.f) },
-            { .pos = vec3(quadPoints[2].x(), quadPoints[2].y() + 0.01f, quadPoints[2].z()), .tex = vec2(1.f, 1.f), .normal = vec3(0.f, -1.f, 0.f) },
-            { .pos = vec3(quadPoints[3].x(), quadPoints[3].y() + 0.01f, quadPoints[3].z()), .tex = vec2(0.f, 1.f), .normal = vec3(0.f, -1.f, 0.f) }
-#else
-            { vec3(quadPoints[0].x(), quadPoints[0].y() + 0.01f, quadPoints[0].z()), vec2(0.f, 0.f), vec3(0.f, -1.f, 0.f) },
-            { vec3(quadPoints[1].x(), quadPoints[1].y() + 0.01f, quadPoints[1].z()), vec2(1.f, 0.f), vec3(0.f, -1.f, 0.f) },
-            { vec3(quadPoints[2].x(), quadPoints[2].y() + 0.01f, quadPoints[2].z()), vec2(1.f, 1.f), vec3(0.f, -1.f, 0.f) },
-            { vec3(quadPoints[3].x(), quadPoints[3].y() + 0.01f, quadPoints[3].z()), vec2(0.f, 1.f), vec3(0.f, -1.f, 0.f) }
-#endif
-        );
-        d_glist[7]->setMaterial(whiteEmissive);
-
-        *d_gworld = new GeometryList(d_glist, 8);
-
-        d_llist[0] = new AreaLight(quadPoints[0], quadPoints[1], quadPoints[2], quadPoints[3], Color::white(), shadowSamples, 10.f);
-        ((AreaLight*)d_llist[0])->rotate(vec3(1.f, 0.f, 0.f), deg_to_rad<float, true>(180.f));
-        *d_lworld = new LightList(d_llist, 1);
+        for (size_t i = 0; i < scene->lightsCount; ++i) {
+            LightDesc l = scene->lights[i];
+            if (l.type == LightType::Area) {
+                d_llist[i] = new AreaLight(l.area.points[0], l.area.points[1], l.area.points[2], l.area.points[3], l.color, shadowSamples, l.intensity);
+                ((AreaLight*)d_llist[i])->rotate(l.area.rotationAxis, deg_to_rad(l.area.roationAngle));
+            }
+        }
+        *d_lworld = new LightList(d_llist, scene->lightsCount);
     }
 }
 
-__global__ void free_world(Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld) {
+__global__ void free_world(SceneDescription* scene, Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {        
         delete* d_cam;
 
-        for (int i = 0; i < 8; ++i) {
+        for (size_t i = 0; i < scene->objectsCount; ++i) {
             delete d_glist[i];
         }
-
         delete* d_gworld;
 
-        delete d_llist[0];
+        for (size_t i = 0; i < scene->lightsCount; ++i) {
+            delete d_llist[i];
+        }
         delete* d_lworld;
     }
 }
@@ -625,6 +455,8 @@ int main()
     fs::path exeDir = getExecutableDir();
 
     settings.load(exeDir.string());
+
+    SceneDescription* h_scene = parseScene(settings.getWorldFilePath().string());
 
 #pragma endregion
 
@@ -682,25 +514,44 @@ int main()
     randomInit(nx, ny, tx, ty, d_rand_state);
 
     // Create World
+    SceneDescription* d_scene;
+    checkCudaErrors(cudaMallocManaged(&d_scene, sizeof(SceneDescription)));
+
+    d_scene->cam = h_scene->cam;
+
+    d_scene->materialsCount = h_scene->materialsCount;
+    checkCudaErrors(cudaMallocManaged(&d_scene->materials, d_scene->materialsCount * sizeof(MaterialDesc)));
+    checkCudaErrors(cudaMemcpy(d_scene->materials, h_scene->materials, d_scene->materialsCount * sizeof(MaterialDesc), cudaMemcpyHostToDevice));
+
+    d_scene->objectsCount = h_scene->objectsCount;
+    checkCudaErrors(cudaMallocManaged(&d_scene->objects, d_scene->objectsCount * sizeof(ObjectDesc)));
+    checkCudaErrors(cudaMemcpy(d_scene->objects, h_scene->objects, d_scene->objectsCount * sizeof(ObjectDesc), cudaMemcpyHostToDevice));
+
+    d_scene->lightsCount = h_scene->lightsCount;
+    checkCudaErrors(cudaMallocManaged(&d_scene->lights, d_scene->lightsCount * sizeof(LightDesc)));
+    checkCudaErrors(cudaMemcpy(d_scene->lights, h_scene->lights, d_scene->lightsCount * sizeof(LightDesc), cudaMemcpyHostToDevice));
+
     Camera** d_cam;
     checkCudaErrors(cudaMallocManaged((void**)&d_cam, sizeof(Camera*)));
 
     Geometry** d_glist;
-    checkCudaErrors(cudaMallocManaged((void**)&d_glist, 8 * sizeof(Geometry*)));
+    checkCudaErrors(cudaMallocManaged((void**)&d_glist, h_scene->objectsCount * sizeof(Geometry*)));
 
     Geometry** d_gworld;
     checkCudaErrors(cudaMallocManaged((void**)&d_gworld, sizeof(Geometry*)));
 
     Light** d_llist;
-    checkCudaErrors(cudaMallocManaged((void**)&d_llist, 1 * sizeof(Light*)));
+    checkCudaErrors(cudaMallocManaged((void**)&d_llist, h_scene->lightsCount * sizeof(Light*)));
 
     Light** d_lworld;
     checkCudaErrors(cudaMallocManaged((void**)&d_lworld, sizeof(Light*)));
 
     // Create our world
-    create_world<<<1, 1>>>(d_cam, d_glist, d_gworld, d_llist, d_lworld, shadowSamples);
+    create_world<<<1, 1>>>(d_scene, d_cam, d_glist, d_gworld, d_llist, d_lworld, shadowSamples);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
+
+    deleteScene(h_scene);
 
     // Allocate FB
     float* fb;
@@ -868,7 +719,8 @@ int main()
 #pragma region Cleanup
 
     // Free our world
-    free_world<<<1, 1>>>(d_cam, d_glist, d_gworld, d_llist, d_lworld);
+    free_world<<<1, 1>>>(d_scene, d_cam, d_glist, d_gworld, d_llist, d_lworld);
+    checkCudaErrors(cudaFree(d_scene));
 
     // Check for any errors launching the kernel
     checkCudaErrors(cudaGetLastError());

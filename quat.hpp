@@ -38,7 +38,7 @@ namespace MSTD_NAMESPACE {
 #pragma endregion // CONSTRUCTORS
 
 #pragma region DESTRUCTOR
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		virtual ~quat() = default;
 #endif
 #pragma endregion // DESTRUCTOR
@@ -60,7 +60,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static quat<T> rotation(const vec_type& axis, const T& radians) {
 			quat<T> q;
 			if (!axis.is_zero()) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					q = quat<T>(__cosf(radians * 0.5f), axis.normalized() * __sinf(radians * 0.5f));
 				}
@@ -72,7 +72,7 @@ namespace MSTD_NAMESPACE {
 #endif
 			}
 			else {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					q = quat<T>(__cosf(radians * 0.5f), axis);
 				}
@@ -88,11 +88,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		MSTD_CUDA_EXPR static quat<T> from_euler_angels(const vec_type& euler_angels) {
-#ifdef MSTD_USE_CUDA
-			return from_radians({ ::MSTD_NAMESPACE::deg_to_rad<T, true>(euler_angels[0]), ::MSTD_NAMESPACE::deg_to_rad<T, true>(euler_angels[1]), ::MSTD_NAMESPACE::deg_to_rad<T, true>(euler_angels[2]) });
-#else
 			return from_radians({ ::MSTD_NAMESPACE::deg_to_rad(euler_angels[0]), ::MSTD_NAMESPACE::deg_to_rad(euler_angels[1]), ::MSTD_NAMESPACE::deg_to_rad(euler_angels[2]) });
-#endif
 		}
 
 		MSTD_CUDA_EXPR static quat<T> from_radians(const vec_type& radians) {
@@ -109,7 +105,7 @@ namespace MSTD_NAMESPACE {
 
 #pragma region QUATERNION_OPERATIONS
 		MSTD_CUDA_EXPR T magnitude() const {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				return __fdividef(1.0f, rsqrtf(s * s + v.dot(v)));
 			}
@@ -143,7 +139,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR quat<T>& invert() {
 			T magnitudes = magnitude();
 			magnitudes *= magnitudes;
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				magnitudes = __fdividef(1.0f, magnitudes);
 			}
@@ -175,7 +171,7 @@ namespace MSTD_NAMESPACE {
 			// roll (x-axis rotation)
 			const T sinx_cosp = T(2) * (q.s * q.v[0] + q.v[1] * q.v[2]);
 			const T cosx_cosp = T(1) - T(2) * (q.v[0] * q.v[0] + q.v[1] * q.v[1]);
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				res[0] = atan2f(sinx_cosp, cosx_cosp);
 			}
@@ -187,9 +183,9 @@ namespace MSTD_NAMESPACE {
 #endif
 
 			// pitch (y-axis rotation)
-			T s1_02_2 = T(2) * (q.s * q.v[1] - q.v[0] * q.v[2]);
+			const T s1_02_2 = T(2) * (q.s * q.v[1] - q.v[0] * q.v[2]);
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				const T siny = __fdividef(1.0f, rsqrtf(1.0f + s1_02_2));
 				const T cosy = __fdividef(1.0f, rsqrtf(1.0f - s1_02_2));
@@ -200,18 +196,19 @@ namespace MSTD_NAMESPACE {
 				const T siny = (T)MSTD_STD_NAMESPACE::sqrt(T(1) + s1_02_2);
 				const T cosy = (T)MSTD_STD_NAMESPACE::sqrt(T(1) - s1_02_2);
 
-				res[1] = (T)(T(2) * MSTD_STD_NAMESPACE::atan2(siny, cosy) - MSTD_CUDA_HALF_PI);
+				res[1] = (T)(T(2) * MSTD_STD_NAMESPACE::atan2(siny, cosy) - MSTD_HALF_PI<T>);
 			}
 #else
-			T siny = (T)MSTD_STD_NAMESPACE::sqrt(T(1) + s1_02_2);
-			T cosy = (T)MSTD_STD_NAMESPACE::sqrt(T(1) - s1_02_2);
+			const T siny = (T)MSTD_STD_NAMESPACE::sqrt(T(1) + s1_02_2);
+			const T cosy = (T)MSTD_STD_NAMESPACE::sqrt(T(1) - s1_02_2);
 			res[1] = (T)(T(2) * MSTD_STD_NAMESPACE::atan2(siny, cosy) - MSTD_HALF_PI<float>);
 #endif
 
 			// yaw (z-axis rotation)
 			const T sinz_cosp = (T)(T(2) * (q.s * q.v[2] + q.v[0] * q.v[1]));
 			const T cosz_cosp = (T)(T(1) - T(2) * (q.v[1] * q.v[1] + q.v[2] * q.v[2]));
-#ifdef MSTD_USE_CUDA
+
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				res[2] = atan2f(sinz_cosp, cosz_cosp);
 			}
@@ -227,15 +224,9 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR vec_type to_euler_angles() const {
 			vec_type res = to_radians();
-#ifdef MSTD_USE_CUDA
-			res[0] = ::MSTD_NAMESPACE::rad_to_deg<T, true>(res[0]);
-			res[1] = ::MSTD_NAMESPACE::rad_to_deg<T, true>(res[1]);
-			res[2] = ::MSTD_NAMESPACE::rad_to_deg<T, true>(res[2]);
-#else
 			res[0] = ::MSTD_NAMESPACE::rad_to_deg(res[0]);
 			res[1] = ::MSTD_NAMESPACE::rad_to_deg(res[1]);
 			res[2] = ::MSTD_NAMESPACE::rad_to_deg(res[2]);
-#endif
 			return res;
 		}
 
@@ -277,7 +268,7 @@ namespace MSTD_NAMESPACE {
 		}
 		MSTD_CUDA_EXPR quat<T>& operator/=(const T& other) {
 			if (other == T(0)) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return *this;
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
@@ -348,7 +339,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		// ostream operators are not supported on cuda
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const quat<T>& quaternion) {
 			return str << "(" << MSTD_STD_NAMESPACE::to_string(quaternion.s) << ", " << quaternion.v << ")";
 		}
