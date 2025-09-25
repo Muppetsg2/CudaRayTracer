@@ -458,6 +458,8 @@ int main()
 
     SceneDescription* h_scene = parseScene(settings.getWorldFilePath().string());
 
+    printf("Successfully loaded scene '%s'.\n", settings.getWorldFilePath().string().c_str());
+
 #pragma endregion
 
 #pragma region Parameters

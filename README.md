@@ -44,27 +44,32 @@
   - Each material can have its own color.
 
 - **Scene**
-  - Default scene is a **Cornell Box** with two spheres:
+  - Default scene is a **Cornell Box** defined in [`renders/cornellbox.yaml`](./renders/cornellbox.yaml), containing two spheres:
     - One **refractive**.
     - One **reflective**.
-  - Scene is defined **directly in the source code**.
+  - The scene is defined by a **YAML file**, and its path can be set in `settings.ini` using the parameter: `world_file_path`.
+
+- **Settings**
+  - Default settings are automatically created in the executable directory if no `settings.ini` file is found.
+  - An example `settings.ini` file can be found in [`renders/settings.ini`](./renders/settings.ini)
 
 - **File Output**
-  - Rendered image is saved in `.hdr` format as `file.hdr`.
+  - The rendered image is saved in **HDR** format at the location specified in the settings, using the configured file name.
 
 ## 🧰 Libraries Used
 
-- [**SFML**](https://www.sfml-dev.org/) – window and display handling.
-- [**stb_image_write**](https://github.com/nothings/stb) – saving images to files.
-- [**stb_image**](https://github.com/nothings/stb) – loading textures (LTC).
-- [**mstd**](https://github.com/MAIPA01/mstd) – math library (modified for CUDA compatibility).
+- [**SFML**](https://www.sfml-dev.org/) – Window and display handling.
+- [**yaml-cpp**](https://github.com/jbeder/yaml-cpp) - Loading scene description from YAML file.
+- [**stb_image_write**](https://github.com/nothings/stb) – Saving rendered image to file.
+- [**stb_image**](https://github.com/nothings/stb) – Loading textures (LTC).
+- [**mstd**](https://github.com/MAIPA01/mstd) – Math library (modified for CUDA compatibility).
 
 📦 **Installation via vcpkg**
 
 All external libraries are managed using [**vcpkg**](https://github.com/microsoft/vcpkg):
 
 ```bash
-vcpkg install sfml stb
+vcpkg install sfml yaml-cpp
 ```
 
 ## ⚙️ Requirements
@@ -82,20 +87,33 @@ vcpkg install sfml stb
 3. Ensure the project uses CUDA Runtime.
 4. Run (`Ctrl+F5`).
 
-After rendering, the image will first be displayed in a window, and upon closing it, saved as `file.hdr`.
+After rendering, the image will first be displayed in a window, and upon closing it, saved as **HDR** file according to settings.
 
 ## ⚙️ Rendering Settings
 
-- **renderAllAtOnce** *(bool)* – if `true`, rendering is done in one kernel and the entire image is displayed at once.  
-  If `false`, the image is rendered in multiple kernels, each responsible for a specific part, with results shown after each.
-- **blocksPerDraw** *(int)* – relevant only when `renderAllAtOnce = false`; defines how many blocks one kernel processes.
-- **nx**, **ny** *(int)* – image resolution.
-- **tx**, **ty** *(int)* – block size. For CUDA devices supporting 1024 threads per block, the largest square block is 19×19.
-- **aa_iter** *(int)* – number of antialiasing iterations (max 4).
-- **ref_iter** *(int)* – number of ray iterations for refraction and reflection.
-- **gl_iter** *(int)* – number of iterations for global illumination calculations. In other words, it specifies the number of gl ray bounces.
-- **ind_rays** *(int)* – number of rays per hemisphere for global illumination (more rays = less noise).
-- **shadowSamples** *(int)* – number of rays used for shadow calculation.
+Rendering behavior and output are configured in the `settings.ini` file. The file is divided into three main sections:
+
+**[Draw]**
+- **render_all_at_once** *(bool)* – If `true`, the image is rendered in a single kernel and displayed at once. If `false`, rendering is split into multiple kernels, each processing a portion of the image, with partial results shown progressively.
+- **blocks_per_draw** *(int)* – Used only when `render_all_at_once = false`; specifies how many blocks one kernel processes.
+- **world_file_path** *(string)* – Path to the YAML file describing the scene (can be relative to the executable or absolute).
+
+**[Image]**
+- **image_width**, **image_height** *(int)* – Output image resolution.
+- **file_name** *(string)* – Name of the output file (without extension). You can include time tags compatible with `strftime` to automatically insert timestamps.
+- **output_path** *(string)* – Path where the output file will be saved (can be relative or absolute).
+
+**[Quality]**
+- **aa_iter** *(int)* – Number of anti-aliasing iterations (max: 4).
+- **ref_iter** *(int)* – Number of ray iterations for refraction and reflection.
+- **gl_iter** *(int)* – Number of iterations for global illumination (i.e., the number of global ray bounces).
+- **ind_rays** *(int)* – Number of rays per hemisphere for global illumination (higher values reduce noise).
+- **shadow_samples** *(int)* – Number of rays used for shadow calculation.
+
+**CUDA Block Size**
+
+If your CUDA device does not support 1024 threads per block, you can adjust the **tx** and **ty** parameters in the `main.cu` file (inside the *Parameters* section). These define the block size. 
+> For CUDA devices supporting 1024 threads per block, the largest square block size is **19×19**.
 
 ## 🖼️ Render Preview
 
@@ -105,28 +123,28 @@ Example outputs (Cornell Box):
   <img src="./renders/render0.png" alt="Example 1 Preview" width="400" />
 </p>
 
-> Example 1: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 0, ind_rays = 75, shadowSamples = 50
+> Example 1: image_width = 720, image_height = 720, aa_iter = 1, ref_iter = 4, gl_iter = 0, ind_rays = 75, shadow_samples = 50
 
 <p align="center">
   <img src="./renders/render1.png" alt="Example 2 Preview" width="400" />
 </p>
 
-> Example 2: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadowSamples = 50
+> Example 2: image_width = 720, image_height = 720, aa_iter = 1, ref_iter = 4, gl_iter = 2, ind_rays = 75, shadow_samples = 50
 
 <p align="center">
   <img src="./renders/render2.png" alt="Example 3 Preview" width="400" />
 </p>
 
-> Example 3: nx = 720, ny = 720, aa_iter = 1, ref_iter = 4, gl_iter = 3, ind_rays = 75, shadowSamples = 50
+> Example 3: image_width = 720, image_height = 720, aa_iter = 1, ref_iter = 4, gl_iter = 3, ind_rays = 75, shadow_samples = 50
 
 The `.hdr` file can be opened in HDR viewers or converted to `.png` and other formats.
 
 ## 🖥️ Benchmark
 
 Tested parameters:
-`nx = 720`, `ny = 720`, `aa_iter = 1`, `ref_iter = 4`, `ind_rays = 75`, `shadowSamples = 50`
+`image_width = 720`, `image_height = 720`, `aa_iter = 1`, `ref_iter = 4`, `ind_rays = 75`, `shadow_samples = 50`
 
-| 🌐 GI Ray Bounces | ⚡ RTX 4070 Ti SUPER | ⚡ RTX 3060 Laptop GPU |
+| 🌐 GL Ray Bounces | ⚡ RTX 4070 Ti SUPER | ⚡ RTX 3060 Laptop GPU |
 | ------------------------------- | -------------------------------- | ---------------------------------- |
 | 0 | ⏱️ 0.116 s | ⏱️ 0.350 s |
 | 1 | ⏱️ 10.438 s	 | ⏱️ 23.596 s |
@@ -134,7 +152,7 @@ Tested parameters:
 | 3 | ⏱️ 6 h 24 min 0.602 s |  ❌ *Not measured* |
 
 > Legend: 
->   - **GI Ray Bounces** – number of ray bounces in Global Illumination calculations. Corresponds to the `gl_iter` parameter.
+>   - **GL Ray Bounces** – number of ray bounces in Global Illumination calculations. Corresponds to the `gl_iter` parameter.
 >   - Time measured in Release mode.
 >   - ❌ – measurement not performed.
 
@@ -142,7 +160,7 @@ Tested parameters:
 
 ```
 .
-├── renders/            # Generated images
+├── renders/            # Generated images and Cornell Box scene file
 ├── CudaRayTracer.sln   # Visual Studio 2022 solution
 ├── LICENSE             # License
 └── README.md
@@ -150,10 +168,10 @@ Tested parameters:
 
 ## 📌 Notes
 
-- Scene is defined in code (no external file loading).
+- Scene is defined in external YAML file.
 - Adaptive antialiasing limited to 4 levels (CUDA).
 - Performance depends on the GPU used.
-- Rendering settings are modified in the source code.
+- Rendering settings are modified in the settings.ini file.
 
 ## 👥 Authors
 

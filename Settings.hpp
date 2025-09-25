@@ -11,8 +11,11 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 
-namespace fs = std::filesystem;
+namespace fs = ::std::filesystem;
 
 namespace craytracer {
     class Settings {
@@ -26,7 +29,7 @@ namespace craytracer {
         unsigned int _gl_iter;
         unsigned int _ind_rays;
         unsigned int _shadow_samples;
-        std::string _file_name;
+        ::std::string _file_name;
         fs::path _output_path;
         fs::path _world_file_path;
 
@@ -45,25 +48,25 @@ namespace craytracer {
 
         template<ValueType T>
         struct Value {
-            std::string name;
+            ::std::string name;
 
-            using type = std::conditional_t<T == ValueType::BOOL, bool,
-                std::conditional_t<T == ValueType::INT, int,
-                std::conditional_t<T == ValueType::UINT, unsigned int,
-                std::conditional_t<T == ValueType::STRING, std::string,
-                std::conditional_t<T == ValueType::PATH, fs::path,
-                std::conditional_t<T == ValueType::ARRAY_BOOL, std::vector<bool>,
-                std::conditional_t<T == ValueType::ARRAY_INT, std::vector<int>,
-                std::conditional_t<T == ValueType::ARRAY_UINT, std::vector<unsigned int>,
-                std::conditional_t<T == ValueType::ARRAY_STRING, std::vector<std::string>,
-                std::vector<fs::path>>>>>>>>>>;
+            using type = ::std::conditional_t<T == ValueType::BOOL, bool,
+                ::std::conditional_t<T == ValueType::INT, int,
+                ::std::conditional_t<T == ValueType::UINT, unsigned int,
+                ::std::conditional_t<T == ValueType::STRING, ::std::string,
+                ::std::conditional_t<T == ValueType::PATH, fs::path,
+                ::std::conditional_t<T == ValueType::ARRAY_BOOL, ::std::vector<bool>,
+                ::std::conditional_t<T == ValueType::ARRAY_INT, ::std::vector<int>,
+                ::std::conditional_t<T == ValueType::ARRAY_UINT, ::std::vector<unsigned int>,
+                ::std::conditional_t<T == ValueType::ARRAY_STRING, ::std::vector<::std::string>,
+                ::std::vector<fs::path>>>>>>>>>>;
 
             type defaultValue;
-            std::string description;
-            std::function<void(type)> addFunc;
+            ::std::string description;
+            ::std::function<void(type)> addFunc;
         };
 
-        using ValueVariant = std::variant<
+        using ValueVariant = ::std::variant<
             Value<ValueType::BOOL>,
             Value<ValueType::INT>,
             Value<ValueType::UINT>,
@@ -77,11 +80,11 @@ namespace craytracer {
         >;
 
         struct Category {
-            std::string name;
-            std::vector<ValueVariant> values;
+            ::std::string name;
+            ::std::vector<ValueVariant> values;
         };
 
-        const std::vector<Category> _Settings = {
+        const ::std::vector<Category> _Settings = {
             Category{ "Draw",
                 {
                     Value<ValueType::BOOL>{
@@ -100,7 +103,7 @@ namespace craytracer {
                         "world_file_path",
                         "./world.yaml",
                         "The path to file containing info about world. This can be relative to the exe file or absolute.",
-                        [&](fs::path x) { _world_file_path = x; }
+                        [&](fs::path x) { _world_file_path = x.lexically_normal(); }
                     }
                 }
             },
@@ -120,14 +123,21 @@ namespace craytracer {
                     },
                     Value<ValueType::STRING>{
                         "file_name",
-                        "file",
-                        "Name of the output file.",
-                        [&](std::string x) {
-                            x.erase(std::remove_if(x.begin(), x.end(), ::isspace), x.end());
-                            if (!x.empty())
-                                _file_name = x;
-                            else
-                                _file_name = "file";
+                        "file-%H-%M-%S",
+                        "Name of the output file. You can include time tags compatible with `strftime`.",
+                        [&](::std::string x) {
+                            x.erase(::std::remove_if(x.begin(), x.end(), ::isspace), x.end());
+                            auto now = ::std::chrono::system_clock::now();
+                            ::std::time_t t = ::std::chrono::system_clock::to_time_t(now);
+
+                            ::std::ostringstream oss;
+                            if (!x.empty()) {
+                                oss << ::std::put_time(::std::localtime(&t), x.c_str());
+                            }
+                            else {
+                                oss << ::std::put_time(::std::localtime(&t), "file-%H-%M-%S");
+                            }
+                            _file_name = oss.str();
                         }
                     },
                     Value<ValueType::PATH>{
@@ -180,10 +190,10 @@ namespace craytracer {
             for (const Category& category : _Settings) {
                 for (const ValueVariant& value : category.values) {
 
-                    std::visit([&](auto&& val) {
-                        using T = std::decay_t<decltype(val.defaultValue)>;
+                    ::std::visit([&](auto&& val) {
+                        using T = ::std::decay_t<decltype(val.defaultValue)>;
 
-                        if constexpr (std::is_same_v<T, fs::path>) {
+                        if constexpr (::std::is_same_v<T, fs::path>) {
                             if (val.defaultValue == fs::path(".")) {
                                 val.addFunc(baseDir);
                             }
@@ -194,8 +204,8 @@ namespace craytracer {
                                 val.addFunc(val.defaultValue);
                             }
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<fs::path>>) {
-                            std::vector<fs::path> resolved;
+                        else if constexpr (::std::is_same_v<T, ::std::vector<fs::path>>) {
+                            ::std::vector<fs::path> resolved;
                             resolved.reserve(val.defaultValue.size());
 
                             for (const fs::path& p : val.defaultValue) {
@@ -222,7 +232,7 @@ namespace craytracer {
         }
 
         void _createDefault(const fs::path& iniPath) {
-            std::ofstream file(iniPath);
+            ::std::ofstream file(iniPath);
             fs::path baseDir = iniPath.parent_path();
 
             bool first = true;
@@ -233,19 +243,19 @@ namespace craytracer {
 
                 for (const ValueVariant& value : category.values) {
                     
-                    std::visit([&](auto&& val) {
+                    ::std::visit([&](auto&& val) {
                         if (!val.description.empty()) {
                             file << "# " << val.description << "\n";
                         }
 
                         file << val.name << "=";
 
-                        using T = std::decay_t<decltype(val.defaultValue)>;
+                        using T = ::std::decay_t<decltype(val.defaultValue)>;
 
-                        if constexpr (std::is_same_v<T, bool>) {
+                        if constexpr (::std::is_same_v<T, bool>) {
                             file << (val.defaultValue ? "true" : "false");
                         }
-                        else if constexpr (std::is_same_v<T, fs::path>) {
+                        else if constexpr (::std::is_same_v<T, fs::path>) {
                             fs::path p = val.defaultValue;
 
                             if (p == fs::path(".")) {
@@ -257,21 +267,21 @@ namespace craytracer {
 
                             file << p.string();
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<bool>>) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<bool>>) {
                             for (size_t i = 0; i < val.defaultValue.size(); ++i) {
                                 file << (val.defaultValue[i] ? "true" : "false");
                                 if (i + 1 < val.defaultValue.size()) file << ";";
                             }
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<int>>          ||
-                                           std::is_same_v<T, std::vector<unsigned int>> ||
-                                           std::is_same_v<T, std::vector<std::string>>) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<int>>          ||
+                                           ::std::is_same_v<T, ::std::vector<unsigned int>> ||
+                                           ::std::is_same_v<T, ::std::vector<::std::string>>) {
                             for (size_t i = 0; i < val.defaultValue.size(); ++i) {
                                 file << val.defaultValue[i];
                                 if (i + 1 < val.defaultValue.size()) file << ";";
                             }
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<fs::path>>) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<fs::path>>) {
                             for (size_t i = 0; i < val.defaultValue.size(); ++i) {
                                 fs::path p = val.defaultValue[i];
 
@@ -297,39 +307,39 @@ namespace craytracer {
             }
         }
 
-        void _parseLine(const std::string& line, const std::string& exeDir) {
+        void _parseLine(const ::std::string& line, const ::std::string& exeDir) {
             if (line.empty() || line[0] == '#' || line[0] == '[')
                 return;
 
             auto eqPos = line.find('=');
-            if (eqPos == std::string::npos)
+            if (eqPos == ::std::string::npos)
                 return;
 
-            std::string key = line.substr(0, eqPos);
-            std::string value = line.substr(eqPos + 1);
+            ::std::string key = line.substr(0, eqPos);
+            ::std::string value = line.substr(eqPos + 1);
 
             for (const Category& category : _Settings) {
                 for (const ValueVariant& var : category.values) {
 
-                    std::visit([&](auto&& val) {
+                    ::std::visit([&](auto&& val) {
                         if (val.name != key) return; // check next
 
-                        using T = std::decay_t<decltype(val.defaultValue)>;
+                        using T = ::std::decay_t<decltype(val.defaultValue)>;
 
-                        if constexpr (std::is_same_v<T, bool>) {
+                        if constexpr (::std::is_same_v<T, bool>) {
                             bool parsed = value == "true";
                             val.addFunc(parsed);
                         }
-                        else if constexpr (std::is_same_v<T, int>) {
-                            val.addFunc(std::stoi(value));
+                        else if constexpr (::std::is_same_v<T, int>) {
+                            val.addFunc(::std::stoi(value));
                         }
-                        else if constexpr (std::is_same_v<T, unsigned int>) {
-                            val.addFunc(static_cast<unsigned int>(std::stoul(value)));
+                        else if constexpr (::std::is_same_v<T, unsigned int>) {
+                            val.addFunc(static_cast<unsigned int>(::std::stoul(value)));
                         }
-                        else if constexpr (std::is_same_v<T, std::string>) {
+                        else if constexpr (::std::is_same_v<T, ::std::string>) {
                             val.addFunc(value);
                         }
-                        else if constexpr (std::is_same_v<T, fs::path>) {
+                        else if constexpr (::std::is_same_v<T, fs::path>) {
                             fs::path p = value;
                             if (p == ".") {
                                 p = exeDir;
@@ -339,47 +349,47 @@ namespace craytracer {
                             }
                             val.addFunc(p.lexically_normal());
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<bool>>) {
-                            std::vector<bool> parsed;
-                            std::stringstream ss(value);
-                            std::string token;
-                            while (std::getline(ss, token, ';')) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<bool>>) {
+                            ::std::vector<bool> parsed;
+                            ::std::stringstream ss(value);
+                            ::std::string token;
+                            while (::std::getline(ss, token, ';')) {
                                 parsed.push_back(token == "true");
                             }
                             val.addFunc(parsed);
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<int>>) {
-                            std::vector<int> parsed;
-                            std::stringstream ss(value);
-                            std::string token;
-                            while (std::getline(ss, token, ';')) {
-                                parsed.push_back(std::stoi(token));
+                        else if constexpr (::std::is_same_v<T, ::std::vector<int>>) {
+                            ::std::vector<int> parsed;
+                            ::std::stringstream ss(value);
+                            ::std::string token;
+                            while (::std::getline(ss, token, ';')) {
+                                parsed.push_back(::std::stoi(token));
                             }
                             val.addFunc(parsed);
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<unsigned int>>) {
-                            std::vector<unsigned int> parsed;
-                            std::stringstream ss(value);
-                            std::string token;
-                            while (std::getline(ss, token, ';')) {
-                                parsed.push_back(static_cast<unsigned int>(std::stoul(token)));
+                        else if constexpr (::std::is_same_v<T, ::std::vector<unsigned int>>) {
+                            ::std::vector<unsigned int> parsed;
+                            ::std::stringstream ss(value);
+                            ::std::string token;
+                            while (::std::getline(ss, token, ';')) {
+                                parsed.push_back(static_cast<unsigned int>(::std::stoul(token)));
                             }
                             val.addFunc(parsed);
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<std::string>>) {
-                            std::vector<std::string> parsed;
-                            std::stringstream ss(value);
-                            std::string token;
-                            while (std::getline(ss, token, ';')) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<::std::string>>) {
+                            ::std::vector<::std::string> parsed;
+                            ::std::stringstream ss(value);
+                            ::std::string token;
+                            while (::std::getline(ss, token, ';')) {
                                 parsed.push_back(token);
                             }
                             val.addFunc(parsed);
                         }
-                        else if constexpr (std::is_same_v<T, std::vector<fs::path>>) {
-                            std::vector<fs::path> parsed;
-                            std::stringstream ss(value);
-                            std::string token;
-                            while (std::getline(ss, token, ';')) {
+                        else if constexpr (::std::is_same_v<T, ::std::vector<fs::path>>) {
+                            ::std::vector<fs::path> parsed;
+                            ::std::stringstream ss(value);
+                            ::std::string token;
+                            while (::std::getline(ss, token, ';')) {
                                 fs::path p = token;
                                 if (p == ".") {
                                     p = exeDir;
@@ -398,7 +408,7 @@ namespace craytracer {
 
     public:
         // Load settings from settings.ini or creates default
-        bool load(const std::string& exeDir) {
+        bool load(const ::std::string& exeDir) {
             fs::path settingsPath = fs::path(exeDir) / "settings.ini";
 
             _setDefaultValues(settingsPath);
@@ -408,12 +418,12 @@ namespace craytracer {
                 return true;
             }
 
-            std::ifstream file(settingsPath);
+            ::std::ifstream file(settingsPath);
             if (!file.is_open())
                 return false;
 
-            std::string line;
-            while (std::getline(file, line)) {
+            ::std::string line;
+            while (::std::getline(file, line)) {
                 _parseLine(line, exeDir);
             }
 
@@ -431,7 +441,7 @@ namespace craytracer {
         const unsigned int& getGlobalIlluminationIterations() const { return _gl_iter; }
         const unsigned int& getIndirectRays() const { return _ind_rays; }
         const unsigned int& getShadowSamples() const { return _shadow_samples; }
-        const std::string& getFileName() const { return _file_name; }
+        const ::std::string& getFileName() const { return _file_name; }
         const fs::path& getOutputPath() const { return _output_path; }
         const fs::path& getWorldFilePath() const { return _world_file_path; }
     };
