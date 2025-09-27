@@ -23,7 +23,13 @@
 #define MSTD_NAMESPACE cmstd
 #define MSTD_STD_NAMESPACE ::cuda::std
 #define MSTD_CLAMP(x, mn, mx) MSTD_STD_NAMESPACE::max((mn), MSTD_STD_NAMESPACE::min((mx), (x)))
+#ifdef MSTD_ONLY_DEVICE
 #define MSTD_CUDA_EXPR __device__
+#elif MSTD_ONLY_HOST
+#define MSTD_CUDA_EXPR __host__
+#else
+#define MSTD_CUDA_EXPR __host__ __device__
+#endif
 #else
 #include <string>
 #include <ostream>

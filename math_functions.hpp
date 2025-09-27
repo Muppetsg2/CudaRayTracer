@@ -28,12 +28,12 @@ namespace MSTD_NAMESPACE {
 		return x < edge ? T(0) : T(1);
 	}
 
-	template<class T, bool cuda_version = false>
+	template<class T>
 	MSTD_CUDA_EXPR static constexpr T remap(const T input, const T currStart, const T currEnd, const T expectedStart, const T expectedEnd) noexcept {
 		const T denom = currEnd - currStart;
 		if (denom == T(0)) return input;
-#ifdef MSTD_USE_CUDA
-		if constexpr (cuda_version && MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 			return expectedStart + __fdividef((expectedEnd - expectedStart), denom) * (input - currStart);
 		}
 		else {
@@ -44,10 +44,10 @@ namespace MSTD_NAMESPACE {
 #endif
 	}
 
-	template<class T, bool cuda_version = false>
+	template<class T>
 	MSTD_CUDA_EXPR static constexpr T deg_to_rad(const T angle) noexcept {
-#ifdef MSTD_USE_CUDA
-		if constexpr (cuda_version && MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 			return angle * MSTD_CUDA_DEG_TO_RAD;
 		}
 		else {
@@ -58,10 +58,10 @@ namespace MSTD_NAMESPACE {
 #endif
 	}
 
-	template<class T, bool cuda_version = false>
+	template<class T>
 	MSTD_CUDA_EXPR static constexpr T rad_to_deg(const T rad) noexcept {
-#ifdef MSTD_USE_CUDA
-		if constexpr (cuda_version && MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 			return rad * MSTD_CUDA_RAD_TO_DEG;
 		}
 		else {
@@ -77,10 +77,10 @@ namespace MSTD_NAMESPACE {
 		return MSTD_STD_NAMESPACE::abs(a - b) < epsilon;
 	}
 
-	template<class T, bool cuda_version = false>
+	template<class T>
 	MSTD_CUDA_EXPR static constexpr T saturate(const T a) noexcept {
-#ifdef MSTD_USE_CUDA
-		if constexpr (cuda_version && MSTD_STD_NAMESPACE::is_same_v<T, float>) {
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 			return __saturatef(a);
 		}
 		else {
@@ -106,27 +106,16 @@ namespace MSTD_NAMESPACE {
 	template<bool cuda_version = false>
 	MSTD_CUDA_EXPR static float reflectance(float cosine, float refraction_index) noexcept {
 		// Use Schlick's approximation for reflectance.
-#ifdef MSTD_USE_CUDA
-		float r0;
-		if constexpr (cuda_version) {
-			r0 = __fdividef((1.0f - refraction_index), (1.0f + refraction_index));
-		}
-		else {
-			r0 = (1.0f - refraction_index) / (1.0f + refraction_index);
-		}
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		float r0 = __fdividef((1.0f - refraction_index), (1.0f + refraction_index));
 #else
 		float r0 = (1.0f - refraction_index) / (1.0f + refraction_index);
 #endif
 
 		r0 = r0 * r0;
 
-#ifdef MSTD_USE_CUDA
-		if constexpr (cuda_version) {
-			return r0 + (1.0f - r0) * __powf(1.0f - cosine, 5.0f);
-		}
-		else {
-			return r0 + (1.0f - r0) * MSTD_STD_NAMESPACE::expf(MSTD_STD_NAMESPACE::logf(1.0f - cosine) * 5.0f);
-		}
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
+		return r0 + (1.0f - r0) * __powf(1.0f - cosine, 5.0f);
 #else
 		return r0 + (1.0f - r0) * MSTD_STD_NAMESPACE::expf(MSTD_STD_NAMESPACE::logf(1.0f - cosine) * 5.0f);
 #endif

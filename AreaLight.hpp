@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 25.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -614,11 +614,11 @@ namespace craytracer {
 #endif
 
 #ifdef __CUDACC__
-			float ndotv = saturate<float, true>(input.norm.dot(input.viewDir));
+			float ndotv = saturate<float>(input.norm.dot(input.viewDir));
 
 			vec2 uv = vec2(roughness, __fdividef(1.0f, rsqrtf(1.0f - ndotv)));
 #else
-			float ndotv = saturate<float, false>(input.norm.dot(input.viewDir));
+			float ndotv = saturate<float>(input.norm.dot(input.viewDir));
 
 			vec2 uv = vec2(roughness, ::std::sqrtf(1.0f - ndotv));
 #endif

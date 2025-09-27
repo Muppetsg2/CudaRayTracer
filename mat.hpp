@@ -178,8 +178,12 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR constexpr void _fill_column(const size_t& col_idx, const T& value) {
 			if (col_idx >= C) return;
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[col_idx], C, value);
+#else
+			::thrust::fill_n(::thrust::host, &_values[col_idx], C, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[col_idx], C, value);
 #endif
@@ -188,16 +192,24 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR constexpr void _fill_column_from(const size_t& first_idx, const size_t& col_idx, const T& value) {
 			if (col_idx >= C) return;
 			if (first_idx >= R) return;
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[col_idx][first_idx], R - first_idx, value);
+#else
+			::thrust::fill_n(::thrust::host, &_values[col_idx][first_idx], R - first_idx, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[col_idx][first_idx], R - first_idx, value);
 #endif
 		}
 
 		MSTD_CUDA_EXPR constexpr void _fill_values(const T& value) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[0][0], R * C, value);
+#else
+			::thrust::fill_n(::thrust::host, &_values[0][0], R * C, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0][0], R * C, value);
 #endif
@@ -205,16 +217,24 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR constexpr void _fill_values_from(const size_t& first_idx, const T& value) {
 			if (first_idx >= size) return;
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[0][0] + first_idx, size - first_idx, value);
+#else
+			::thrust::fill_n(::thrust::device, &_values[0][0] + first_idx, size - first_idx, value);
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0][0] + first_idx, size - first_idx, value);
 #endif
 		}
 
 		MSTD_CUDA_EXPR constexpr void _set_identity_values(const T& value) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 			::thrust::fill_n(::thrust::device, &_values[0][0], size, T(0));
+#else
+			::thrust::fill_n(::thrust::host, &_values[0][0], size, T(0));
+#endif
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0][0], size, T(0));
 #endif
@@ -463,7 +483,7 @@ namespace MSTD_NAMESPACE {
 #pragma endregion // CONSTRUCTORS
 
 #pragma region DESTRUCTOR
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		virtual ~mat() = default;
 #endif
 #pragma endregion // DESTRUCTOR
@@ -584,7 +604,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static mat<C, R, T> screen(const T& left, const T& right, const T& bottom, const T& top, const T& width, const T& height) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T inv_bt;
 			T inv_rl;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
@@ -628,7 +648,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_x(const T& radians) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T cosA, sinA;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				cosA = __cosf(radians);
@@ -659,7 +679,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_y(const T& radians) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T cosA, sinA;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				cosA = __cosf(radians);
@@ -690,7 +710,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static mat<C, R, T> rot_z(const T& radians) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T cosA, sinA;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				cosA = __cosf(radians);
@@ -722,7 +742,7 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR static mat<C, R, T> rot(const ::MSTD_NAMESPACE::vec<R - 1, T>&axis, const T& radians) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T cosA, sinA;
 			if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 				cosA = __cosf(radians);
@@ -802,7 +822,7 @@ namespace MSTD_NAMESPACE {
 			const T& res_near = T(-1), const T& res_far = T(1))	{
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 			if (right == left) return mat<C, R, T>::identity();
 			if (top == bottom) return mat<C, R, T>::identity();
 #else
@@ -813,7 +833,7 @@ namespace MSTD_NAMESPACE {
 			const T& abs_near = MSTD_STD_NAMESPACE::abs(near);
 			const T& abs_far = MSTD_STD_NAMESPACE::abs(far);
 			if (abs_near == abs_far)
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return mat<C, R, T>::identity();
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("absolute of near cannot be equal absolute of far");
@@ -823,7 +843,7 @@ namespace MSTD_NAMESPACE {
 			const T& y_dir = top > bottom ? T(1) : T(-1);
 			const T& z_dir = -(x_dir * y_dir);
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T inv_rl;
 			T inv_tb;
 			T inv_fn;
@@ -884,13 +904,13 @@ namespace MSTD_NAMESPACE {
 			T top;
 			if (horizontal_fov) {
 				if (aspect == T(0))
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 					return mat<C, R, T>::identity();
 #else
 					throw MSTD_STD_NAMESPACE::runtime_error("aspect was zero");
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					right = __tanf(fov * 0.5f) * abs_near;
 					top = __fdividef(right, aspect);
@@ -905,7 +925,7 @@ namespace MSTD_NAMESPACE {
 #endif
 			}
 			else {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					top = __tanf(fov * 0.5f) * abs_near;
 					right = top * aspect;
@@ -935,7 +955,7 @@ namespace MSTD_NAMESPACE {
 			const T& res_top = T(1), const T& res_near = T(-1), const T& res_far = T(1)) {
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 			if (right == left) return mat<C, R, T>::identity();
 			if (top == bottom) return mat<C, R, T>::identity();
 #else
@@ -946,7 +966,7 @@ namespace MSTD_NAMESPACE {
 			const T& abs_near = MSTD_STD_NAMESPACE::abs(near);
 			const T& abs_far = MSTD_STD_NAMESPACE::abs(far);
 			if (abs_near == abs_far)
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return mat<C, R, T>::identity();
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("absolute of near cannot be equal absolute of far");
@@ -956,7 +976,7 @@ namespace MSTD_NAMESPACE {
 			const T& y_dir = top > bottom ? T(1) : T(-1);
 			const T& z_dir = -(x_dir * y_dir);
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 			T inv_rl;
 			T inv_tb;
 			T inv_fn;
@@ -1312,13 +1332,13 @@ namespace MSTD_NAMESPACE {
 #endif
 			if constexpr (R == 1) {
 				if (_values[0][0] != T(0))
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 					return mat<C, R, T>(_values);
 #else
 					throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
 #endif
 
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					return mat<C, R, T>(__fdividef(1.0f, _values[0][0]));
 				}
@@ -1331,12 +1351,16 @@ namespace MSTD_NAMESPACE {
 			}
 			else {
 				// calculate det
-				T det = determinant();
+				const T det = determinant();
 
-#ifdef MSTD_USE_CUDA
 				if (det == T(0))
+#if defined(MSTD_USE_CUDA)
 					return mat<C, R, T>(_values);
+#else
+					throw MSTD_STD_NAMESPACE::runtime_error("determinant was zero");
+#endif
 
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 				T invD;
 				if constexpr (MSTD_STD_NAMESPACE::is_same_v<T, float>) {
 					invD = __fdividef(1.0f, det);
@@ -1345,10 +1369,7 @@ namespace MSTD_NAMESPACE {
 					invD = (T)(1.0 / det);
 				}
 #else
-				if (det == T(0))
-					throw MSTD_STD_NAMESPACE::runtime_error("determinant was zero");
-
-				T invD = (T)(1.0 / det);
+				const T invD = (T)(1.0 / det);
 #endif
 
 				mat<C, R, T> res;
@@ -1388,7 +1409,7 @@ namespace MSTD_NAMESPACE {
 							// jeœli sub_det != 0
 							if (sub_det != T(0)) {
 								// ustawiamy wartoœæ elementu x, y
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA) && defined(__CUDA_ARCH__)
 								res[x][y] = (!((x + y) & 1) ? T(1) : T(-1)) * sub_det * invD;
 #else
 								res[x][y] = (!((x + y) % 2) ? T(1) : T(-1)) * sub_det * invD;
@@ -1452,7 +1473,7 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR mat<C, R, T>& operator/=(const T& other) {
 			if (other == T(0))
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
 				return *this;
 #else
 				throw MSTD_STD_NAMESPACE::runtime_error("division by zero");
@@ -1552,8 +1573,12 @@ namespace MSTD_NAMESPACE {
 			}
 			else {
 				for (size_t x = 0; x != C; ++x) {
-#ifdef MSTD_USE_CUDA
+#if defined(MSTD_USE_CUDA)
+#if defined(__CUDA_ARCH__)
 					if (!::thrust::equal(::thrust::device, _values[x], _values[x] + R, other[x])) return false;
+#else
+					if (!::thrust::equal(::thrust::host, _values[x], _values[x] + R, other[x])) return false;
+#endif
 #else
 					if (MSTD_STD_NAMESPACE::memcmp(_values[x], other[x], R * sizeof(T)) != 0) return false;
 #endif
@@ -1580,7 +1605,7 @@ namespace MSTD_NAMESPACE {
 		}
 
 		// ostream operators are not supported on cuda
-#ifndef MSTD_USE_CUDA
+#if !defined(MSTD_USE_CUDA)
 		MSTD_FRIEND MSTD_STD_NAMESPACE::ostream& operator<<(MSTD_STD_NAMESPACE::ostream& str, const mat<C, R, T>& matrix) {
 			size_t cell_width = 0;
 

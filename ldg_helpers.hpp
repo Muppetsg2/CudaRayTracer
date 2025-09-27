@@ -3,13 +3,13 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 25.09.2025                                   *
  *                                                            *
  **************************************************************/
 
 #pragma once
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__)
 namespace craytracer {
 	__device__ __forceinline__ bool ldg_bool(const bool* ptr) {
 		return static_cast<bool>(__ldg(reinterpret_cast<const unsigned char*>(ptr)));
