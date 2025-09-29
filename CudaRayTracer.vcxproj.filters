@@ -71,6 +71,9 @@
     <ClInclude Include="Settings.hpp" />
     <ClInclude Include="directory_helpers.hpp" />
     <ClInclude Include="SceneDescription.hpp" />
+    <ClInclude Include="KDTree.hpp" />
+    <ClInclude Include="AABB.hpp" />
+    <ClInclude Include="BVH.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Geometry">

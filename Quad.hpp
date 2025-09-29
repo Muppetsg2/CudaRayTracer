@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 28.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -192,6 +192,15 @@ namespace craytracer {
             return ::std::make_tuple(_v0, _v1, _v2, _v3);
         }
 #endif
+
+        __device__ AABB getBounds() const {
+            AABB bounds;
+            bounds.expand(_v0.pos);
+            bounds.expand(_v1.pos);
+            bounds.expand(_v2.pos);
+            bounds.expand(_v3.pos);
+            return bounds;
+        }
 
 		__device__ bool hit(const Ray& ray, RayHit& hit) const {
             static const int lut[4] = { 1, 2, 0, 1 };

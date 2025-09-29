@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 28.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -36,6 +36,21 @@ namespace craytracer {
 		__device__ void setCenter(vec3 value) { _center = value; }
 
 		__device__ void setRadius(float value) { _radius = value; }
+
+		__device__ AABB getBounds() const {
+			AABB bounds;
+#ifdef __CUDACC__
+			const vec3 center = ldg_vec3(&_center);
+			const float radius = ldg_float(&_radius);
+
+			bounds.expand(center - vec3(radius));
+			bounds.expand(center + vec3(radius));
+#else
+			bounds.expand(_center - vec3(_radius));
+			bounds.expand(_center + vec3(_radius));
+#endif
+			return bounds;
+		}
 
 		__device__ bool hit(const Ray& ray, RayHit& hit) const {
 			float t0, t1; // Solutions for t if the ray intersects the sphere

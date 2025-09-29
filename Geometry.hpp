@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 10.08.2025                                   *
+ *  Last Update: 28.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -11,6 +11,7 @@
 #include "Ray.hpp"
 #include "Material.hpp"
 #include "Color.hpp"
+#include "AABB.hpp"
 
 namespace craytracer {
 	class Geometry {
@@ -33,6 +34,8 @@ namespace craytracer {
 		__device__ Material getMaterial() const { return _mat; }
 
 		__device__ void setMaterial(Material value) { _mat = value; }
+
+		__device__ virtual AABB getBounds() const = 0;
 
 		__device__ virtual bool hit(const Ray& ray, RayHit& hit) const = 0;
 	};

@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 25.09.2025                                   *
+ *  Last Update: 29.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -18,6 +18,7 @@
 #include <fstream>
 #include <functional>
 #include <iomanip>
+#include <stack>
 #include <stdexcept>
 #include <stdio.h>
 #include <string>

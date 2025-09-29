@@ -103,12 +103,15 @@
     <CudaCompile Include="main.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AABB.hpp" />
     <ClInclude Include="AreaLight.hpp" />
+    <ClInclude Include="BVH.hpp" />
     <ClInclude Include="Camera.hpp" />
     <ClInclude Include="Color.hpp" />
     <ClInclude Include="directory_helpers.hpp" />
     <ClInclude Include="Geometry.hpp" />
     <ClInclude Include="GeometryList.hpp" />
+    <ClInclude Include="KDTree.hpp" />
     <ClInclude Include="ldg_helpers.hpp" />
     <ClInclude Include="Light.hpp" />
     <ClInclude Include="LightList.hpp" />

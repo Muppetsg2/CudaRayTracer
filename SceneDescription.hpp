@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 25.09.2025                                   *
+ *  Last Update: 29.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -42,12 +42,28 @@ namespace craytracer {
     struct SphereDesc {
         vec3 center;
         float radius;
+
+        AABB getBounds() {
+            AABB bounds;
+            bounds.expand(center - vec3(radius));
+            bounds.expand(center + vec3(radius));
+            return bounds;
+        }
     };
 
     struct QuadDesc {
         vec3 positions[4];
         vec2 texCoords[4];
         vec3 normals[4];
+
+        AABB getBounds() {
+            AABB bounds;
+            bounds.expand(positions[0]);
+            bounds.expand(positions[1]);
+            bounds.expand(positions[2]);
+            bounds.expand(positions[3]);
+            return bounds;
+        }
     };
 
     struct ObjectDesc {
@@ -55,6 +71,17 @@ namespace craytracer {
         unsigned int materialId;
         SphereDesc sphere;
         QuadDesc quad;
+
+        AABB getBounds() {
+            switch (type) {
+            case ObjectType::Sphere:
+                return sphere.getBounds();
+            case ObjectType::Quad:
+                return quad.getBounds();
+            default:
+                return AABB();
+            }
+        }
     };
 
     struct AreaLightDesc {
@@ -73,11 +100,11 @@ namespace craytracer {
 
     struct SceneDescription {
         CameraDesc cam;
-        size_t materialsCount;
+        int materialsCount;
         MaterialDesc* materials;
-        size_t objectsCount;
+        int objectsCount;
         ObjectDesc* objects;
-        size_t lightsCount;
+        int lightsCount;
         LightDesc* lights;
 
         ~SceneDescription() {
@@ -172,9 +199,9 @@ namespace craytracer {
 
         // Materials
         YAML::Node mats = config["materials"];
-        scene->materialsCount = mats.size();
+        scene->materialsCount = (int)mats.size();
         scene->materials = new MaterialDesc[scene->materialsCount];
-        for (size_t i = 0; i < scene->materialsCount; ++i) {
+        for (int i = 0; i < scene->materialsCount; ++i) {
             YAML::Node m = mats[i];
             scene->materials[i].id = m["id"].as<unsigned int>();
             ::std::string type = m["type"].as<::std::string>();
@@ -189,9 +216,9 @@ namespace craytracer {
 
         // Objects
         YAML::Node objs = config["objects"];
-        scene->objectsCount = objs.size();
+        scene->objectsCount = (int)objs.size();
         scene->objects = new ObjectDesc[scene->objectsCount];
-        for (size_t i = 0; i < scene->objectsCount; ++i) {
+        for (int i = 0; i < scene->objectsCount; ++i) {
             YAML::Node o = objs[i];
             ObjectType t = detail::parseObjectType(o["type"].as<::std::string>());
             scene->objects[i] = ObjectDesc(t);
@@ -221,9 +248,9 @@ namespace craytracer {
 
         // Lights
         YAML::Node lights = config["lights"];
-        scene->lightsCount = lights.size();
+        scene->lightsCount = (int)lights.size();
         scene->lights = new LightDesc[scene->lightsCount];
-        for (size_t i = 0; i < scene->lightsCount; ++i) {
+        for (int i = 0; i < scene->lightsCount; ++i) {
             YAML::Node l = lights[i];
             LightType t = detail::parseLightType(l["type"].as<::std::string>());
             scene->lights[i] = LightDesc(t);
