@@ -56,11 +56,16 @@ namespace MSTD_NAMESPACE {
 
 		MSTD_CUDA_EXPR constexpr void _fill_values(const T& value) {
 #if defined(MSTD_USE_CUDA)
+			::thrust::fill_n(
 #if defined(__CUDA_ARCH__)
-			::thrust::fill_n(::thrust::device, &_values[0], N, value);
+				::thrust::device,
 #else
-			::thrust::fill_n(::thrust::host, &_values[0], N, value);
+				::thrust::host,
 #endif
+				&_values[0],
+				N,
+				value
+			);
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0], N, value);
 #endif
@@ -69,11 +74,16 @@ namespace MSTD_NAMESPACE {
 		MSTD_CUDA_EXPR constexpr void _fill_values_from(size_t first_idx, const T& value) {
 			if (first_idx >= N) return;
 #if defined(MSTD_USE_CUDA)
+			::thrust::fill_n(
 #if defined(__CUDA_ARCH__)
-			::thrust::fill_n(::thrust::device, &_values[0] + first_idx, N - first_idx, value);
+				::thrust::device,
 #else
-			::thrust::fill_n(::thrust::host, &_values[0] + first_idx, N - first_idx, value);
+				::thrust::host,
 #endif
+				&_values[0] + first_idx,
+				N - first_idx,
+				value
+			);
 #else
 			MSTD_STD_NAMESPACE::fill_n(&_values[0] + first_idx, N - first_idx, value);
 #endif
@@ -838,11 +848,16 @@ namespace MSTD_NAMESPACE {
 			}
 			else {
 #if defined(MSTD_USE_CUDA)
+				return ::thrust::equal(
 #if defined(__CUDA_ARCH__)
-				return ::thrust::equal(::thrust::device, _values, _values + N, static_cast<const T*>(other));
+					::thrust::device,
 #else
-				return ::thrust::equal(::thrust::host, _values, _values + N, static_cast<const T*>(other));
+					::thrust::host,
 #endif
+					_values,
+					_values + N,
+					static_cast<const T*>(other)
+				);
 #else
 				return MSTD_STD_NAMESPACE::memcmp(_values, static_cast<const T*>(other), N * sizeof(T)) == 0;
 #endif
