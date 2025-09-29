@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 28.09.2025                                   *
+ *  Last Update: 29.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -42,7 +42,6 @@
 #include "Settings.hpp"
 #include "SceneDescription.hpp"
 #include "KDTree.hpp"
-#include "BVH.hpp"
 #pragma endregion
 
 using namespace craytracer;
@@ -372,7 +371,7 @@ __global__ void render_partial(float* fb, unsigned int max_x, unsigned int max_y
     rand_state[idx] = local_rand_state;
 }
 
-__global__ void create_world(SceneDescription* scene, KDNode* tree_nodes, int tree_nodes_count, int* tree_indexes, int tree_indexes_count, Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
+__global__ void create_world(SceneDescription* scene, bool use_tree, KDNode* tree_nodes, int tree_nodes_count, int* tree_indexes, int tree_indexes_count, Camera** d_cam, Geometry** d_glist, Geometry** d_gworld, Light** d_llist, Light** d_lworld, unsigned int shadowSamples) {
     if (threadIdx.x == 0 && blockIdx.x == 0) {
         // Camera
         *d_cam = new Camera(scene->cam.position, scene->cam.front, scene->cam.type, deg_to_rad(scene->cam.fov), scene->cam.orthoScale);
@@ -414,8 +413,12 @@ __global__ void create_world(SceneDescription* scene, KDNode* tree_nodes, int tr
             }
             d_glist[i]->setMaterial(mat);
         }
-        *d_gworld = new KDTree(d_glist, scene->objectsCount, tree_nodes, tree_nodes_count, tree_indexes, tree_indexes_count);
-        //*d_gworld = new BVH(d_glist, scene->objectsCount, tree_nodes, tree_nodes_count, tree_indexes, tree_indexes_count);
+        if (use_tree) {
+            *d_gworld = new KDTree(d_glist, scene->objectsCount, tree_nodes, tree_nodes_count, tree_indexes, tree_indexes_count);
+        }
+        else {
+            *d_gworld = new GeometryList(d_glist, scene->objectsCount);
+        }
 
         for (size_t i = 0; i < scene->lightsCount; ++i) {
             LightDesc l = scene->lights[i];
@@ -468,10 +471,8 @@ int main()
     printf("Successfully loaded scene '%s'.\n", settings.getWorldFilePath().string().c_str());
 
     KDTreeBuilder* tree_builder = new KDTreeBuilder(h_scene);
-    tree_builder->build();
 
-    //BVHBuilder* bvh_builder = new BVHBuilder(h_scene);
-    //bvh_builder->build();
+    if (settings.getBuildTree()) tree_builder->build();
 
 #pragma endregion
 
@@ -552,19 +553,12 @@ int main()
     KDNode* d_nodes;
     bytes = tree_builder->nodes.size() * sizeof(KDNode);
     checkCudaErrors(cudaMallocManaged((void**)&d_nodes, bytes));
-    checkCudaErrors(cudaMemcpy(d_nodes, tree_builder->nodes.data(), bytes, cudaMemcpyHostToDevice));
-
-    //BVHNode* d_nodes;
-    //bytes = bvh_builder->nodes.size() * sizeof(BVHNode);
-    //checkCudaErrors(cudaMallocManaged((void**)&d_nodes, bytes));
-    //checkCudaErrors(cudaMemcpy(d_nodes, bvh_builder->nodes.data(), bytes, cudaMemcpyHostToDevice));
+    if (settings.getBuildTree()) checkCudaErrors(cudaMemcpy(d_nodes, tree_builder->nodes.data(), bytes, cudaMemcpyHostToDevice));
 
     int* d_indexes;
     bytes = tree_builder->indexes.size() * sizeof(int);
-    //bytes = bvh_builder->indexes.size() * sizeof(int);
     checkCudaErrors(cudaMallocManaged((void**)&d_indexes, bytes));
-    checkCudaErrors(cudaMemcpy(d_indexes, tree_builder->indexes.data(), bytes, cudaMemcpyHostToDevice));
-    //checkCudaErrors(cudaMemcpy(d_indexes, bvh_builder->indexes.data(), bytes, cudaMemcpyHostToDevice));
+    if (settings.getBuildTree()) checkCudaErrors(cudaMemcpy(d_indexes, tree_builder->indexes.data(), bytes, cudaMemcpyHostToDevice));
 
     Camera** d_cam;
     checkCudaErrors(cudaMallocManaged((void**)&d_cam, sizeof(Camera*)));
@@ -573,7 +567,12 @@ int main()
     checkCudaErrors(cudaMallocManaged((void**)&d_glist, h_scene->objectsCount * sizeof(Geometry*)));
 
     Geometry** d_gworld;
-    checkCudaErrors(cudaMallocManaged((void**)&d_gworld, sizeof(KDTree*)));
+    if (settings.getBuildTree()) {
+        checkCudaErrors(cudaMallocManaged((void**)&d_gworld, sizeof(KDTree*)));
+    }
+    else {
+        checkCudaErrors(cudaMallocManaged((void**)&d_gworld, sizeof(GeometryList*)));
+    }
 
     Light** d_llist;
     checkCudaErrors(cudaMallocManaged((void**)&d_llist, h_scene->lightsCount * sizeof(Light*)));
@@ -582,12 +581,11 @@ int main()
     checkCudaErrors(cudaMallocManaged((void**)&d_lworld, sizeof(Light*)));
 
     // Create our world
-    create_world<<<1, 1>>>(d_scene, d_nodes, (int)tree_builder->nodes.size(), d_indexes, (int)tree_builder->indexes.size(), d_cam, d_glist, d_gworld, d_llist, d_lworld, shadowSamples);
+    create_world<<<1, 1>>>(d_scene, settings.getBuildTree(), d_nodes, (int)tree_builder->nodes.size(), d_indexes, (int)tree_builder->indexes.size(), d_cam, d_glist, d_gworld, d_llist, d_lworld, shadowSamples);
     checkCudaErrors(cudaGetLastError());
     checkCudaErrors(cudaDeviceSynchronize());
 
     delete tree_builder;
-    //delete bvh_builder;
     deleteScene(h_scene);
 
     // Allocate FB

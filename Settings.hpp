@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 25.09.2025                                   *
+ *  Last Update: 29.09.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -21,6 +21,7 @@ namespace craytracer {
     class Settings {
     private:
         bool _render_all_at_once;
+        bool _build_tree;
         unsigned int _blocks_per_draw;
         unsigned int _image_width;
         unsigned int _image_height;
@@ -92,6 +93,12 @@ namespace craytracer {
                         true,
                         "Indicates that the image will be drawn in one block.",
                         [&](bool x) { _render_all_at_once = x; }
+                    },
+                    Value<ValueType::BOOL>{
+                        "build_tree",
+                        true,
+                        "Indicates that the KDTree will be build before rendering for optimization.",
+                        [&](bool x) { _build_tree = x; }
                     },
                     Value<ValueType::UINT>{
                         "blocks_per_draw",
@@ -433,6 +440,7 @@ namespace craytracer {
         }
 
         const bool& getRenderAllAtOnce() const { return _render_all_at_once; }
+        const bool& getBuildTree() const { return _build_tree; }
         const unsigned int& getBlocksPerDraw() const { return _blocks_per_draw; }
         const unsigned int& getImageWidth() const { return _image_width; }
         const unsigned int& getImageHeight() const { return _image_height; }

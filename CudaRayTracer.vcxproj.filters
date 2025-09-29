@@ -68,12 +68,17 @@
       <Filter>Light</Filter>
     </ClInclude>
     <ClInclude Include="ldg_helpers.hpp" />
-    <ClInclude Include="Settings.hpp" />
-    <ClInclude Include="directory_helpers.hpp" />
     <ClInclude Include="SceneDescription.hpp" />
     <ClInclude Include="KDTree.hpp" />
-    <ClInclude Include="AABB.hpp" />
-    <ClInclude Include="BVH.hpp" />
+    <ClInclude Include="AABB.hpp">
+      <Filter>Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="directory_helpers.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
+    <ClInclude Include="Settings.hpp">
+      <Filter>System</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Geometry">
@@ -90,6 +95,9 @@
     </Filter>
     <Filter Include="Libraries">
       <UniqueIdentifier>{654da495-34ea-454f-be96-896a2d2debff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="System">
+      <UniqueIdentifier>{45fe3660-e2ac-423b-a959-91d842e03748}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
