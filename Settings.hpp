@@ -3,7 +3,7 @@
  *  Project:   CudaRayTracer                                  *
  *  Authors:   Muppetsg2 & MAIPA01                            *
  *  License:   MIT License                                    *
- *  Last Update: 25.09.2025                                   *
+ *  Last Update: 09.10.2025                                   *
  *                                                            *
  **************************************************************/
 
@@ -11,6 +11,10 @@
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <functional>
+#include <type_traits>
+#include <variant>
+#include <cstdint>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
