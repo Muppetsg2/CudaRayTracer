@@ -32,7 +32,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.9.props" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.1.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -64,6 +64,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
+	  <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(CudaToolkitIncludeDir)\cccl</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -73,7 +74,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <AdditionalOptions>--std=c++20 --use_fast_math %(AdditionalOptions)</AdditionalOptions>
-      <Include>vcpkg_installed\x64-windows\include</Include>
+      <Include>vcpkg_installed\x64-windows\include;$(CudaToolkitIncludeDir)\cccl</Include>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -85,6 +86,7 @@
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeaderFile>pch.hpp</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir);$(CudaToolkitIncludeDir)\cccl</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -96,7 +98,7 @@
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
       <AdditionalOptions>--std=c++20 -O2 --use_fast_math %(AdditionalOptions)</AdditionalOptions>
-      <Include>vcpkg_installed\x64-windows\include</Include>
+      <Include>vcpkg_installed\x64-windows\include;$(CudaToolkitIncludeDir)\cccl</Include>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -138,6 +140,6 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 12.9.targets" />
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 13.1.targets" />
   </ImportGroup>
 </Project>
